@@ -1,0 +1,132 @@
+[
+  {
+    "file": "images/hero/hero-intro.jpg",
+    "alt": "티파티에 초대받은 내가 사실은 디저트?!",
+    "size_kb": 336.6
+  },
+  {
+    "file": "images/hero/hero-onboarding.jpg",
+    "alt": "티파티에 초대받은 디저트 친구들",
+    "size_kb": 128.4
+  },
+  {
+    "file": "images/icons/icon-macaron.png",
+    "alt": "딸기마카롱 아이콘",
+    "size_kb": 66.6,
+    "type_key": "macaron"
+  },
+  {
+    "file": "images/icons/icon-creambun.png",
+    "alt": "슈크림빵 아이콘",
+    "size_kb": 73.2,
+    "type_key": "creambun"
+  },
+  {
+    "file": "images/icons/icon-millefeuille.png",
+    "alt": "밀푀유 아이콘",
+    "size_kb": 94.9,
+    "type_key": "millefeuille"
+  },
+  {
+    "file": "images/icons/icon-meringue.png",
+    "alt": "머랭쿠키 아이콘",
+    "size_kb": 76.9,
+    "type_key": "meringue"
+  },
+  {
+    "file": "images/icons/icon-tiramisu.png",
+    "alt": "티라미수 아이콘",
+    "size_kb": 81.5,
+    "type_key": "tiramisu"
+  },
+  {
+    "file": "images/icons/icon-pudding.png",
+    "alt": "카라멜푸딩 아이콘",
+    "size_kb": 61.6,
+    "type_key": "pudding"
+  },
+  {
+    "file": "images/icons/icon-parfait.png",
+    "alt": "요거트파르페 아이콘",
+    "size_kb": 127.4,
+    "type_key": "parfait"
+  },
+  {
+    "file": "images/icons/icon-brownie.png",
+    "alt": "에스프레소브라우니 아이콘",
+    "size_kb": 59.7,
+    "type_key": "brownie"
+  },
+  {
+    "file": "images/icons/icon-croissant.png",
+    "alt": "피스타치오크루아상 아이콘",
+    "size_kb": 95.0,
+    "type_key": "croissant"
+  },
+  {
+    "file": "images/icons/icon-castella.png",
+    "alt": "카스텔라 아이콘",
+    "size_kb": 65.3,
+    "type_key": "castella"
+  },
+  {
+    "file": "images/profiles/profile-macaron.jpg",
+    "alt": "딸기마카롱 프로필",
+    "size_kb": 59.2,
+    "type_key": "macaron"
+  },
+  {
+    "file": "images/profiles/profile-creambun.jpg",
+    "alt": "슈크림빵 프로필",
+    "size_kb": 60.6,
+    "type_key": "creambun"
+  },
+  {
+    "file": "images/profiles/profile-millefeuille.jpg",
+    "alt": "밀푀유 프로필",
+    "size_kb": 66.8,
+    "type_key": "millefeuille"
+  },
+  {
+    "file": "images/profiles/profile-meringue.jpg",
+    "alt": "머랭쿠키 프로필",
+    "size_kb": 60.5,
+    "type_key": "meringue"
+  },
+  {
+    "file": "images/profiles/profile-parfait.jpg",
+    "alt": "요거트파르페 프로필",
+    "size_kb": 64.6,
+    "type_key": "parfait"
+  },
+  {
+    "file": "images/profiles/profile-brownie.jpg",
+    "alt": "에스프레소브라우니 프로필",
+    "size_kb": 55.9,
+    "type_key": "brownie"
+  },
+  {
+    "file": "images/profiles/profile-croissant.jpg",
+    "alt": "피스타치오크루아상 프로필",
+    "size_kb": 63.7,
+    "type_key": "croissant"
+  },
+  {
+    "file": "images/profiles/profile-castella.jpg",
+    "alt": "카스텔라 프로필",
+    "size_kb": 58.7,
+    "type_key": "castella"
+  },
+  {
+    "file": "images/profiles/profile-tiramisu.jpg",
+    "alt": "티라미수 프로필",
+    "size_kb": 59.5,
+    "type_key": "tiramisu"
+  },
+  {
+    "file": "images/profiles/profile-pudding.jpg",
+    "alt": "카라멜푸딩 프로필",
+    "size_kb": 61.4,
+    "type_key": "pudding"
+  }
+]

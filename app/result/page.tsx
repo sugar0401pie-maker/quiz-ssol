@@ -1,0 +1,325 @@
+"use client";
+
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import RadarChart from "@/components/RadarChart";
+import ShareSheet from "@/components/ShareSheet";
+import { useQuiz } from "@/lib/QuizContext";
+import { createClient } from "@/lib/supabase/client";
+import {
+  AXIS_KR,
+  AXIS_ORDER,
+  DESSERT,
+  DESSERT_FAMILY,
+  DISCLAIMER,
+  TONE_TABLE,
+  TYPE_LINE1,
+  TYPE_LINE2,
+  TYPE_TRAITS,
+  domainRelation,
+  previewMatchTypes,
+  type AxisKey,
+  type Gender,
+  type ModeKey,
+  type TypeCode,
+} from "@/lib/data";
+import { resolveIconKey } from "@/lib/icons";
+
+// 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
+export const dynamic = "force-dynamic";
+
+// 2026-09-25: 로그인 화면에서 "결과 저장하기" 흐름을 마치고 돌아왔을 때(/result?saved=1),
+// 저장됐다는 걸 잠깐 토스트로 알려줍니다. useSearchParams는 Suspense 경계 안에서만 정적
+// 렌더링과 함께 쓸 수 있어 별도 컴포넌트로 뺐습니다(app/signup/page.tsx와 같은 패턴).
+function SavedToastEffect({ onSaved }: { onSaved: () => void }) {
+  const params = useSearchParams();
+  useEffect(() => {
+    if (params.get("saved") === "1") onSaved();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+// v2 스펙 6.5, 10장 — 무료 결과 화면.
+// 노출 순서: 디저트 이름 → 계열 태그 → 계열 설명 → 디저트별 대처방식 설명 →
+// 영역/대처방식 한 줄 요약 → 오각형 그래프(무료 확정) → 고지문.
+export default function ResultPage() {
+  const router = useRouter();
+  const { userName, userGender, title, result, savedResultId, setProfile, setResult, setSavedResultId, reset } = useQuiz();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [toast, setToast] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false);
+  // 2026-09-25: result가 Context에 없을 때(로그인 직후 리다이렉트, 또는 로그인된 채로 이
+  // 페이지를 직접 새로고침/주소창 진입한 경우) 바로 "/"로 튕겨내지 않고, 로그인 여부를 먼저
+  // 확인해서 저장된 결과가 있으면 불러옵니다. Context는 메모리 상태라 새로고침하면 비어있는
+  // 게 정상이라, 이 확인 없이는 로그인된 사용자도 계속 첫 화면으로 밀려나는 문제가 있었습니다.
+  useEffect(() => {
+    if (result) return;
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        if (!cancelled) router.replace("/");
+        return;
+      }
+      const res = await fetch("/api/results");
+      if (!res.ok) {
+        if (!cancelled) router.replace("/");
+        return;
+      }
+      const data = await res.json();
+      if (cancelled) return;
+      setProfile(data.userName, data.gender as Gender);
+      setResult({
+        part1Answers: data.part1Answers,
+        part2Answers: data.part2Answers,
+        factorScores: data.factorScores,
+        axisScores: data.axisScores,
+        confirmedAxis: data.confirmedAxis,
+        subScores: data.subScores,
+        modeScores: data.modeScores,
+        confirmedMode: data.confirmedMode,
+        typeCode: data.typeCode,
+      });
+      setSavedResultId(data.id);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
+
+  const showSavedToast = () => {
+    setToast("저장되었습니다!");
+    setTimeout(() => setToast(""), 2200);
+  };
+
+  // 2026-09-25: "로그인된 상태에서 결과 저장하기를 눌렀는데 왜 다시 로그인/가입 화면으로
+  // 보내냐"는 피드백 — 이미 로그인돼 있으면 화면 이동 없이 그 자리에서 바로 저장하고
+  // 토스트만 띄웁니다. 로그인이 안 돼 있을 때만 기존처럼 /signup으로 보냅니다.
+  const handleSaveClick = async () => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/signup");
+      return;
+    }
+    if (savedResultId) {
+      showSavedToast();
+      return;
+    }
+    // 2026-09-27: "이미 저장된 결과가 있는데 다시 저장하면 기존 결과가 사라진다"는 걸 미리
+    // 알려달라는 요청 — 저장을 실행하기 전에, 이 계정에 이미 저장된 결과가 있는지 먼저 확인해서
+    // 있으면 확인 창을 띄웁니다(진짜 첫 저장이면 확인 없이 바로 저장).
+    const existingRes = await fetch("/api/results");
+    if (existingRes.status === 200) {
+      setConfirmOverwrite(true);
+      return;
+    }
+    await doSave();
+  };
+
+  const doSave = async () => {
+    if (!result) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userName,
+          gender: userGender,
+          part1Answers: result.part1Answers,
+          part2Answers: result.part2Answers,
+          confirmedAxis: result.confirmedAxis,
+          confirmedMode: result.confirmedMode,
+          typeCode: result.typeCode,
+          axisScores: result.axisScores,
+          factorScores: result.factorScores,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        console.error("결과 저장 실패:", res.status, err);
+        setToast(`저장에 실패했어요 (${res.status}${err?.reason ? ": " + JSON.stringify(err.reason) : ""}). 다시 시도해주세요.`);
+        setTimeout(() => setToast(""), 6000);
+        return;
+      }
+      const data = await res.json();
+      if (data?.id) setSavedResultId(data.id);
+      showSavedToast();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!result) return null;
+
+  const { confirmedAxis, typeCode, axisScores } = result;
+  const dessert = DESSERT[typeCode];
+  const family = DESSERT_FAMILY[confirmedAxis];
+  const who = `${userName} ${title}님`;
+
+  return (
+    <div className="card">
+      <Suspense fallback={null}>
+        <SavedToastEffect onSaved={showSavedToast} />
+      </Suspense>
+      <div className="res-avatar">
+        {dessert.hasArt ? (
+          <Image src={`/images/profiles/profile-${resolveIconKey(dessert.icon)}.jpg`} alt={dessert.name} fill sizes="480px" priority />
+        ) : (
+          <div
+            style={{
+              width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+              background: "var(--sky-bg)", position: "relative",
+            }}
+          >
+            <Image
+              src={`/images/profiles/profile-${resolveIconKey(dessert.icon)}.jpg`}
+              alt={dessert.name}
+              fill
+              sizes="480px"
+              style={{ opacity: 0.55 }}
+            />
+            <span
+              className="tiny"
+              style={{ position: "absolute", bottom: 10, background: "var(--white)", padding: "4px 10px", borderRadius: 999, border: "1px solid var(--border)" }}
+            >
+              캐릭터 그림 준비 중이에요
+            </span>
+          </div>
+        )}
+      </div>
+      <p className="type-reveal">
+        <span>{`${userName} ${title}님은 `}</span>
+        <span className="type-name-inline serif">{dessert.name}</span> 유형입니다.
+      </p>
+
+      <p className="type-blurb">{family.desc}</p>
+
+      <RadarChart scores={axisScores} />
+      {(() => {
+        const strongest = AXIS_ORDER.reduce((a, b) => (axisScores[b] > axisScores[a] ? b : a));
+        const weakest = AXIS_ORDER.reduce((a, b) => (axisScores[b] < axisScores[a] ? b : a));
+        // 2026-09-25: "3.0점, 2.11점 이런 숫자 말고 설명 위주로" 피드백 — 점수 대신 그 영역이
+        // 지금 어떤 상태인지를 말로 풀어서 전달합니다.
+        if (strongest === weakest) {
+          return (
+            <p className="type-blurb" style={{ marginTop: -10 }}>
+              다섯 영역이 비슷하게 채워져 있어요. 그중에서도 {AXIS_KR[weakest]} 영역에 요즘 조금 더 마음이 쓰이는 시기예요.
+            </p>
+          );
+        }
+        return (
+          <p className="type-blurb" style={{ marginTop: -10 }}>
+            {AXIS_KR[strongest]} 영역은 지금 가장 안정적으로 채워져 있어서, 큰 걱정 없이 잘 흘러가고 있어요.
+            <br />
+            {AXIS_KR[weakest]} 영역은 요즘 마음이 자주 향하는 곳이라, 조금 더 관심과 에너지가 필요해 보여요.
+          </p>
+        );
+      })()}
+
+      <p className="type-blurb">{dessert.why}</p>
+
+      <p className="traits-title">당신은 이런 사람일거에요</p>
+      <ul className="traits">
+        <li>{TYPE_LINE1[confirmedAxis]}</li>
+        <li>{TYPE_LINE2[typeCode]}</li>
+        {TYPE_TRAITS[typeCode].map((t, i) => (
+          <li key={i}>{t}</li>
+        ))}
+      </ul>
+
+      <p className="match-title">당신과 가장 잘 맞는 유형은 누구일까요?</p>
+      <div className="match-row">
+        {(() => {
+          const preview = previewMatchTypes(typeCode);
+          const cards: { key: string; label: string; type: TypeCode; cls: string }[] = [
+            { key: "connected", label: "편안한 친구", type: preview.connectedSame, cls: "best" },
+            { key: "independent", label: "아마도 정반대?", type: preview.independentDiff, cls: "worst" },
+          ];
+          return cards.map((c) => {
+            const [fAxis, fMode] = c.type.split("-") as [AxisKey, ModeKey];
+            const [myAxis, myMode] = typeCode.split("-") as [AxisKey, ModeKey];
+            const dRel = domainRelation(myAxis, fAxis);
+            const mRel = myMode === fMode ? "same" : "diff";
+            const tone = TONE_TABLE[`${dRel}-${mRel}`];
+            const d = DESSERT[c.type];
+            return (
+              <div key={c.key} className={`match-card ${c.cls}`}>
+                <p className="match-label">{c.label}</p>
+                <div className="match-avatar">
+                  <Image src={`/images/icons/icon-${resolveIconKey(d.icon)}.png`} alt={d.name} fill sizes="92px" />
+                </div>
+                <p className="match-name">{d.name}</p>
+                <p className="match-desc">{tone.body}</p>
+              </div>
+            );
+          });
+        })()}
+      </div>
+      <button className="secondary" style={{ marginTop: -8, marginBottom: 20 }} onClick={() => router.push("/match")}>
+        다른 유형과 나의 관계는 어떨까?!
+      </button>
+
+      <div className="cta">
+        <p className="cta-title">{who}의 이야기, 더 자세하게 알아봐요</p>
+        <p>나는 왜 이렇게 생각할까? 남이 보는 내 모습은 어떨까? 조금 더 구체적인 분석을 통해 {userName}님에 대해 더 자세히 알아보세요.</p>
+        <button onClick={() => router.push("/result/report")}>심층 리포트 보기</button>
+      </div>
+
+      <div className="share-row">
+        <button className="secondary" onClick={() => setSheetOpen(true)}>
+          내 결과 공유하기
+        </button>
+        <button className="secondary" onClick={handleSaveClick} disabled={saving}>
+          {saving ? "저장 중..." : "결과 저장하기"}
+        </button>
+      </div>
+      {toast && <div className="toast">{toast}</div>}
+
+      {confirmOverwrite && (
+        <div className="confirm-overlay">
+          <div className="confirm-box">
+            <p className="confirm-msg">이미 저장된 결과가 있어요. 다시 저장할 경우 기존 결과는 사라집니다.</p>
+            <div className="confirm-actions">
+              <button className="secondary" onClick={() => setConfirmOverwrite(false)}>
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmOverwrite(false);
+                  doSave();
+                }}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        className="secondary restart"
+        onClick={() => {
+          reset();
+          router.push("/");
+        }}
+      >
+        다시 해보기
+      </button>
+
+      <div className="notice">{DISCLAIMER}</div>
+
+      {sheetOpen && <ShareSheet typeCode={typeCode} onClose={() => setSheetOpen(false)} onToast={setToast} />}
+    </div>
+  );
+}
