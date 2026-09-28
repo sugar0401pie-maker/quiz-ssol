@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useQuiz } from "@/lib/QuizContext";
+import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
 import type { Gender } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
 
@@ -95,6 +95,24 @@ export default function LoginPage() {
     setToast("비밀번호 재설정 메일을 보냈어요. 메일함을 확인해주세요.");
   };
 
+  // 2026-09-28: "로그인 화면에 카카오 로그인 버튼 없다" 요청 — /signup의 카카오 버튼과
+  // 같은 방식(Supabase OAuth)입니다. 카카오/네이버는 버튼을 다시 누르면 그 자체로 로그인이
+  // 되므로, 이메일/비밀번호 입력 없이 바로 이 흐름을 탑니다.
+  const loginWithKakao = async () => {
+    setBusy(true);
+    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup });
+    const { error } = await createClient().auth.signInWithOAuth({
+      provider: "kakao",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) {
+      console.error("카카오 로그인 시작 실패:", error.message);
+      setBusy(false);
+      setToast("카카오 로그인을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+    }
+    // 성공하면 supabase가 알아서 카카오 페이지로 이동시킵니다.
+  };
+
   const login = async () => {
     if (!contact.trim() || !password.trim()) {
       setToast("이메일과 비밀번호를 입력해주세요.");
@@ -174,6 +192,12 @@ export default function LoginPage() {
       <button type="button" className="text-link" style={{ display: "block", margin: "10px auto 0" }} onClick={sendPasswordReset} disabled={busy}>
         비밀번호를 잊으셨나요?
       </button>
+
+      <p className="muted" style={{ textAlign: "center", fontSize: 12.5, margin: "16px 0 10px" }}>또는</p>
+      <button type="button" className="signup-opt signup-kakao" onClick={loginWithKakao} disabled={busy}>
+        <span>💬</span> 카카오로 로그인하기
+      </button>
+
       {/* 2026-09-28: 테스트를 안 본 채로(홈 "로그인하기"로) 들어온 경우에도 회원가입 경로가
           보여야 해서, result 유무와 상관없이 항상 노출합니다. */}
       <button
