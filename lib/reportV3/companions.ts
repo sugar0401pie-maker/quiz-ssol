@@ -104,15 +104,20 @@ export function neighbors(axis: AxisKey, mode: ModeKey, f: Record<FactorKey, num
 // 피하려고 여기서 직접 import했습니다.
 import { FACTOR_KR as FACTOR_KR_LOCAL } from "../data";
 
-/** 대조형: 사슬에서 가장 먼 영역·가장 먼 대처방식 중 1명(동점이면 PRIORITY 고정 순서). */
+/** 대조형: 사슬에서 가장 먼 영역·가장 먼 대처방식 중 1명. */
 export function contrasts(axis: AxisKey, mode: ModeKey): ContrastType {
   const i = CHAIN.indexOf(axis);
   const cands = CHAIN.filter((d) => Math.abs(CHAIN.indexOf(d) - i) >= 2);
+  // 2026-09-28: 동점(자기(SLF)만 인생·연애 양끝과 거리 2로 동률) 처리 순서를 PRIORITY
+  // 오름차순(인생 우선)에서 사슬 뒤쪽(연애 쪽) 우선으로 뒤집었습니다 — server_logic_v3.py의
+  // PRIORITY 순서를 그대로 따르면 인생이 이겨야 하지만, JunSeok이 직접 쓴 자기 3유형
+  // 샘플(바스크·마들렌·카스텔라) 전부가 예외 없이 연애 쪽을 대조형으로 골라, 원본 스크립트의
+  // 동점 처리에 반영 안 된 실수로 보고 샘플 쪽(연애 우선)을 기준으로 맞췄습니다.
   cands.sort((a, b) => {
     const da = Math.abs(CHAIN.indexOf(a) - i);
     const db = Math.abs(CHAIN.indexOf(b) - i);
     if (da !== db) return db - da; // 거리가 먼 쪽 우선
-    return PRIORITY.indexOf(a) - PRIORITY.indexOf(b);
+    return CHAIN.indexOf(b) - CHAIN.indexOf(a); // 동점이면 사슬 뒤쪽(연애 방향) 우선
   });
   const farMode: ModeKey = mode === "disengage" ? "primary" : "disengage";
   const d = cands[0];
