@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { DESSERT, TYPE_LINE2, type TypeCode } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
-import { InstagramIcon, KakaoTalkIcon, LinkIcon, NaverIcon, XIcon, YoutubeIcon } from "@/components/BrandIcons";
+import { InstagramIcon, KakaoBubbleIcon, LinkIcon, NaverIcon, XIcon, YoutubeIcon } from "@/components/BrandIcons";
 
 const KAKAO_BUTTON_ID = "ssol-kakao-share-btn";
 
@@ -174,7 +174,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
         <div className="share-grid">
           <button type="button" id={KAKAO_BUTTON_ID} className="share-opt" onClick={shareToKakao}>
             <span className="share-opt-icon" style={{ background: "#FEE500", color: "#3A2E1F" }}>
-              <KakaoTalkIcon width={24} height={24} />
+              <KakaoBubbleIcon width={26} height={26} />
             </span>
             <span className="lbl">카카오톡</span>
           </button>

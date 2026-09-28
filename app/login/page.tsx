@@ -174,16 +174,16 @@ export default function LoginPage() {
       <button type="button" className="text-link" style={{ display: "block", margin: "10px auto 0" }} onClick={sendPasswordReset} disabled={busy}>
         비밀번호를 잊으셨나요?
       </button>
-      {result && (
-        <button
-          type="button"
-          className="secondary"
-          style={{ marginTop: 10 }}
-          onClick={() => router.push("/signup/email")}
-        >
-          계정이 없으신가요? 계정 만들기
-        </button>
-      )}
+      {/* 2026-09-28: 테스트를 안 본 채로(홈 "로그인하기"로) 들어온 경우에도 회원가입 경로가
+          보여야 해서, result 유무와 상관없이 항상 노출합니다. */}
+      <button
+        type="button"
+        className="secondary"
+        style={{ marginTop: 10 }}
+        onClick={() => router.push("/signup/email")}
+      >
+        계정이 없으신가요? 회원가입하기
+      </button>
 
       {toast && <div className="toast">{toast}</div>}
     </div>

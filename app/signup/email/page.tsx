@@ -59,9 +59,9 @@ export default function SignupEmailPage() {
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const codeSectionRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!result) router.replace("/");
-  }, [result, router]);
+  // 2026-09-28: "로그인 화면에 회원가입이 없다" 피드백 — 이제 홈 "로그인하기"를 거쳐
+  // 테스트 결과 없이 바로 들어올 수도 있어서, result가 없다고 홈으로 쫓아내지 않습니다.
+  // (result가 있으면 기존처럼 가입 완료 시 그 결과도 같이 저장됩니다.)
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
@@ -75,8 +75,6 @@ export default function SignupEmailPage() {
       codeSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [verifyShown]);
-
-  if (!result) return null;
 
   const pwChecks = checkPassword(password);
   const pwValid = pwChecks.length && pwChecks.upper && pwChecks.special;
@@ -189,6 +187,9 @@ export default function SignupEmailPage() {
   };
 
   const saveResult = async () => {
+    // 테스트 결과 없이(홈 "로그인하기" → "회원가입하기") 가입한 경우 — 저장할 결과가
+    // 없으니 그냥 성공으로 취급하고 넘어갑니다.
+    if (!result) return true;
     const res = await fetch("/api/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -257,8 +258,8 @@ export default function SignupEmailPage() {
         setToast("가입은 됐지만 결과를 저장하지 못했어요. 가입 완료를 다시 눌러주세요.");
         return;
       }
-      setToast("가입이 완료됐어요! 이제 결과가 저장돼요.");
-      const nextPath = pendingAfterSignup ?? "/result";
+      setToast(result ? "가입이 완료됐어요! 이제 결과가 저장돼요." : "가입이 완료됐어요! 이제 테스트를 해볼 수 있어요.");
+      const nextPath = pendingAfterSignup ?? (result ? "/result" : "/");
       setPendingAfterSignup(null);
       timer.current = setTimeout(() => router.push(nextPath), 1600);
     } finally {
@@ -271,7 +272,7 @@ export default function SignupEmailPage() {
       <button
         className="secondary"
         style={{ width: "auto", padding: "8px 14px", fontSize: 14, marginBottom: 16 }}
-        onClick={() => router.push("/signup")}
+        onClick={() => router.push(result ? "/signup" : "/login")}
       >
         ← 뒤로
       </button>

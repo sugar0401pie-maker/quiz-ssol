@@ -14,6 +14,19 @@ export function KakaoTalkIcon(props: IconProps) {
   );
 }
 
+// 2026-09-28: "공유 시트 카카오 아이콘을 카카오 오리지널 로고로" 요청 — 위 KakaoTalkIcon은
+// 앱 아이콘 원본(사각 프레임 + 그 안에 작은 KAKAO 글자)이라 52px 원형 배지 안에 넣으면
+// 프레임이 두 겹으로 겹쳐 보이고 글자도 뭉개져 보였습니다. 다른 아이콘들(네이버 N, X 등)처럼
+// 프레임 없는 심볼만 쓰도록 카카오의 말풍선 심볼만 따로 둡니다.
+export function KakaoBubbleIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <title>카카오톡</title>
+      <path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.8 1.87 5.26 4.67 6.65-.2.73-.73 2.68-.84 3.1-.13.5.19.5.4.36.16-.11 2.6-1.77 3.66-2.48.68.1 1.38.15 2.11.15 5.52 0 10-3.48 10-7.78C22 6.48 17.52 3 12 3z" />
+    </svg>
+  );
+}
+
 export function NaverIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" {...props}>
