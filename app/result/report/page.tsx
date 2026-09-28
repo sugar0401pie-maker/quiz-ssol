@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
-import { AXIS_KR, DESSERT, GENDER_TITLE } from "@/lib/data";
+import { AXIS_KR, DESSERT } from "@/lib/data";
 import { EUL_REUL } from "@/lib/josa";
 import { createClient } from "@/lib/supabase/client";
 
@@ -39,17 +39,14 @@ interface AssembledV3 {
   section8: string[];
 }
 
-type ViewState = "locked" | "ready" | "generating" | "failed";
-
-// "....." 부분이 움직이도록(400ms마다 1~4개 순환) — 로딩 문구 애니메이션.
-function useAnimatedDots() {
-  const [n, setN] = useState(1);
-  useEffect(() => {
-    const t = setInterval(() => setN((v) => (v % 4) + 1), 400);
-    return () => clearInterval(t);
-  }, []);
-  return ".".repeat(n);
-}
+// 2026-09-28: "결제했는데도 잠금 화면이 계속 보인다" 문제 — 서버 응답 중 "none"(아직 결제
+// 확인 전) 케이스를 처리하는 분기가 없어서, 한 번이라도 이 응답을 받으면 화면이 "locked"에
+// 멈춰 결제 버튼이 계속 활성화돼 있을 수 있었습니다(이중결제 위험). "locked"는 이제 서버가
+// "결제된 주문 없음"을 명시적으로 확인해준 경우에만 들어가고, 그 전에는 중립적인 "checking"
+// 상태를 보여줍니다(결제 버튼 없음).
+// 2026-09-28: "생성 중" 화면을 /result/report/generating 별도 페이지로 뺐습니다 — 이
+// 페이지는 이제 "generating"으로 안 머물고 그쪽으로 즉시 넘어갑니다.
+type ViewState = "checking" | "locked" | "ready" | "failed";
 
 // v6 프롬프트 — 심층 리포트 8섹션 전부(1~8번)를 결제 후 OpenAI가 생성합니다(더 이상 무료
 // 미리보기 없음 — 오각형 그래프만 /result에서 이미 무료로 보여주고 있어 별도 예고편은 유지).
@@ -57,14 +54,21 @@ export default function ReportPage() {
   const router = useRouter();
   const { result, savedResultId, setSavedResultId, userName, userGender, setPendingAfterSignup } = useQuiz();
   const [toast, setToast] = useState("");
-  const [view, setView] = useState<ViewState>("locked");
+  const [view, setView] = useState<ViewState>("checking");
   const [assembled, setAssembled] = useState<AssembledV3 | null>(null);
   const [busy, setBusy] = useState(false);
   const [mailOpen, setMailOpen] = useState(false);
   const [mailAddr, setMailAddr] = useState("");
   const [mailBusy, setMailBusy] = useState(false);
-  const dots = useAnimatedDots();
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 2026-09-28: "결제해야 열려요" 안내가 결제 후에도 계속 보이던 버그 — 토스트가 한 번 뜨면
+  // 스스로 사라지지 않고 다음 화면까지 그대로 남아있었습니다. 일정 시간 뒤 자동으로 지웁니다.
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     if (!result) router.replace("/");
@@ -89,14 +93,31 @@ export default function ReportPage() {
         pollTimer.current = null;
       }
     } else if (data?.status === "generating") {
-      setView((v) => (v === "ready" ? v : "generating"));
+      // 2026-09-28: "생성 중" 화면은 별도 페이지로 뺐습니다 — 여기 계속 머물지 않고 넘어갑니다.
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
+      router.replace("/result/report/generating");
     } else if (data?.status === "failed") {
       setView("failed");
+    } else if (data?.status === "none") {
+      // 서버가 "결제된 주문이 없다"고 명시적으로 확인해준 경우에만 잠금 화면(결제 버튼)을 보여줍니다.
+      setView((v) => (v === "ready" ? v : "locked"));
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
     }
+    // 그 외(네트워크 오류·타임아웃 등)는 view를 바꾸지 않고 다음 폴링에서 재시도합니다.
   };
 
   useEffect(() => {
-    if (!savedResultId) return;
+    // 저장된 결과 자체가 없으면(아직 로그인/저장 전) 확인할 주문이 없으니 바로 잠금 화면입니다.
+    if (!savedResultId) {
+      setView("locked");
+      return;
+    }
     fetchReport(savedResultId);
     pollTimer.current = setInterval(() => fetchReport(savedResultId), 4000);
     return () => {
@@ -383,21 +404,14 @@ export default function ReportPage() {
     );
   }
 
-  if (view === "generating") {
-    const honorific = `${userName}${GENDER_TITLE[userGender || "none"]}님`;
+  if (view === "checking") {
     return (
       <div className="card">
         {backBtn}
         <p className="kicker kicker-sm">심층 리포트</p>
         <h1 className="serif">{dessert.name}의 웰니스 이야기</h1>
         <RadarChart scores={axisScores} />
-        <div className="cta">
-          <p className="cta-title">
-            {honorific}의 심층 보고서를 작성하고 있어요{dots}
-          </p>
-          <p>완료되면 이 화면이 저절로 새로고침돼요. 잠깐만 기다려주세요.</p>
-        </div>
-        {toast && <div className="toast">{toast}</div>}
+        <p className="muted" style={{ marginTop: 12 }}>결제 상태를 확인하는 중이에요…</p>
       </div>
     );
   }
@@ -450,11 +464,13 @@ export default function ReportPage() {
       )}
 
       <div className="report-paywall">
-        <p className="report-paywall-title">전체 심층 리포트</p>
-        <p className="report-paywall-price">3,500원</p>
+        <p className="report-paywall-promo">
+          출시 기념 한정 기간동안 단 3,500원에 테스트 결과 심층 리포트 + 웰니스 채팅 &lsquo;쏘웰라&rsquo; 1주일 무료 멤버십까지 이용하실 수 있어요.
+        </p>
         <button className="btn-lg" onClick={payForReport} disabled={busy}>
-          3,500원 결제하고 전체 보기
+          결제하고 보고서 바로 열람하기
         </button>
+        <p className="report-paywall-note">버튼을 누르면 결제 창으로 연결돼요.</p>
       </div>
       {process.env.NODE_ENV !== "production" && (
         <button className="secondary" style={{ marginTop: 10 }} onClick={devSkipPayment} disabled={busy}>

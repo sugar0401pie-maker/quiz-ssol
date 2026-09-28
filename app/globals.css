@@ -47,6 +47,9 @@ body {
   background: var(--sky-bg);
   color: var(--ink);
   min-height: 100vh;
+  /* 2026-09-28: 기본 줄바꿈 규칙이 한글 음절 중간(예: "브라우"/"니")에서 끊기 쉬워서,
+     사이트 전체에서 단어(공백) 경계에서만 줄을 바꾸도록 설정합니다. */
+  word-break: keep-all;
   display: flex;
   justify-content: center;
   padding: 32px 16px;
@@ -151,6 +154,11 @@ button:active { transform: scale(0.98); }
 .cta p { color: var(--sky-bg); }
 .cta .cta-title { color: var(--white); font-weight: 700; font-size: 13.5px; line-height: 1.4; margin-bottom: 4px; }
 .cta button { background: var(--white); color: var(--navy); border-color: var(--white); margin-top: 10px; }
+/* 2026-09-28: 심층 리포트 생성 대기 문구 — 움직이는 점(....) 대신, 문장 전체가 반투명해졌다가
+   다시 진해지기를 반복하는 형태로 "쓰는 중"임을 보여줍니다. */
+@keyframes pulse-fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.pulse-text { animation: pulse-fade 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .pulse-text { animation: none; } }
 .toast { margin-top: 10px; font-size: 17px; font-weight: 700; color: var(--navy-soft); text-align: center; }
 .text-link {
   background: none; border: none; padding: 0; margin: 0; width: auto; display: inline;
@@ -197,10 +205,13 @@ button:active { transform: scale(0.98); }
   position: relative; width: 116px; height: 116px; max-width: 100%; background: transparent; border: none;
   display: flex; align-items: center; justify-content: center; margin-bottom: 8px; overflow: hidden;
 }
-/* 2026-09-28: "캐릭터가 박스에 꽉 차게" 피드백 — 원본 이미지 자체에 여백이 있어서,
-   contain(전체 다 보이게, 여백 남음) 대신 cover(확대해서 박스를 꽉 채움)로 바꿨습니다. */
-.match-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.match-name { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 4px; font-family: var(--font-gaegu), "Gaegu", sans-serif; }
+/* 2026-09-28: cover로 박스를 꽉 채우니 손·팔처럼 옆으로 뻗은 부분이 잘려서, 잘리지 않게
+   다시 contain으로 되돌렸습니다(여백이 남더라도 신체 일부가 잘리는 것보다 낫습니다). */
+.match-avatar img { width: 100%; height: 100%; object-fit: contain; }
+/* 2026-09-28: "에스프레소 브라우니"처럼 긴 이름이 음절 중간(예: "브라우"/"니")에서 잘려
+   줄바꿈되던 문제 — 한글 기본 줄바꿈 규칙은 글자 단위로 끊기 쉬워서, 공백이 있는 자리
+   (단어 경계)에서만 줄을 바꾸도록 word-break: keep-all을 추가했습니다. */
+.match-name { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 4px; font-family: var(--font-gaegu), "Gaegu", sans-serif; word-break: keep-all; }
 .match-desc { font-size: 13.5px; color: var(--text2); line-height: 1.6; margin: 0; }
 
 /* 2026-09-25: /match 결과 카드 — 기존 .cta(핑크 배경)는 "이미 결제된 콘텐츠" 느낌이 강해서,
@@ -259,6 +270,8 @@ button:active { transform: scale(0.98); }
 .report-paywall { background: var(--navy); border-radius: 16px; padding: 18px 20px; margin: 18px 0 10px; text-align: center; }
 .report-paywall-title { color: var(--sky-bg); font-size: 13.5px; margin: 0 0 2px; }
 .report-paywall-price { color: #fff; font-size: 24px; font-weight: 700; margin: 0 0 12px; font-family: var(--font-gaegu), "Gaegu", sans-serif; }
+.report-paywall-promo { color: var(--sky-bg); font-size: 14px; line-height: 1.6; margin: 0 0 14px; }
+.report-paywall-note { color: var(--sky-bg); font-size: 12px; opacity: 0.85; margin: 8px 0 0; }
 .report-paywall button { background: var(--white); color: var(--navy); border-color: var(--white); }
 
 .signup-opt {

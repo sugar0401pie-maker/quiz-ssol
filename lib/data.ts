@@ -56,7 +56,7 @@ export const PART1_ITEMS: Record<string, Part1Item> = {
   P18: { factor: "competence_cw", t: "원했던 성과를 달성하지 못하면 내 가치가 낮아지는 것 같다." },
   P19: { factor: "approval_cw", t: "직장 동료나 친구들이 나를 어떻게 생각하는지에 따라 기분이 흔들리는 편이다." },
   P20: { factor: "approval_cw", t: "사람들에게 좋은 모습만 보여야 한다는 부담을 느끼곤 한다." },
-  P21: { factor: "approval_cw", t: "누군가 나에게 실망하거나 서운해 하여도 스스로에 대한 따뜻한 태도가 크게 바뀌진 않는다." },
+  P21: { factor: "approval_cw", t: "누군가 나에게 실망하거나 서운해 해도 스스로에 대한 따뜻한 태도가 크게 바뀌진 않는다." },
 };
 export const PART1_ORDER = [
   "P01", "P03", "P07", "P09", "P11", "P13", "P15", "P17", "P19",
