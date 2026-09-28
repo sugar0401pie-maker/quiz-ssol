@@ -192,7 +192,7 @@ button:active { transform: scale(0.98); }
 }
 /* 2026-09-28: "캐릭터가 박스에 꽉 차게" 피드백 — 원본 이미지 자체에 여백이 있어서,
    contain(전체 다 보이게, 여백 남음) 대신 cover(확대해서 박스를 꽉 채움)로 바꿨습니다. */
-.match-avatar img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.25); }
+.match-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .match-name { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 4px; font-family: var(--font-gaegu), "Gaegu", sans-serif; }
 .match-desc { font-size: 13.5px; color: var(--text2); line-height: 1.6; margin: 0; }
 

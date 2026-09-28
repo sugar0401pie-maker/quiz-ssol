@@ -354,17 +354,19 @@ export default function ResultPage() {
       <div className="notice">{DISCLAIMER}</div>
 
       {authChecked && (
-        <p style={{ textAlign: "center", marginTop: 14 }}>
+        <>
           {isLoggedIn ? (
-            <button type="button" className="text-link" onClick={handleLogout}>
-              로그아웃
-            </button>
+            <p style={{ textAlign: "center", marginTop: 14 }}>
+              <button type="button" className="text-link" onClick={handleLogout}>
+                로그아웃
+              </button>
+            </p>
           ) : (
-            <button type="button" className="text-link" onClick={() => router.push("/login")}>
-              로그인하기
+            <button type="button" className="secondary" style={{ marginTop: 14 }} onClick={() => router.push("/login")}>
+              로그인하고 저장하기
             </button>
           )}
-        </p>
+        </>
       )}
 
       {sheetOpen && <ShareSheet typeCode={typeCode} onClose={() => setSheetOpen(false)} onToast={setToast} />}
