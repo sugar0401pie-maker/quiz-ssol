@@ -8,6 +8,9 @@ export interface BaseKnowledgeEntry {
   personality: string;
   domainStyleLabel: string;
   domainStyle: string;
+  /** 2026-09-28: v4 인계서 — 이제 이론·학자명을 리포트에 직접 인용해야 해서 다시 추가했습니다
+   *  (v3 때는 유저 노출 방지를 위해 뺐던 필드입니다). */
+  relatedTheory: string;
 }
 
 export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
@@ -17,6 +20,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "업무 스타일",
     domainStyle:
       "변화와 실행이 잦은 환경에서 에너지를 얻어요. 안정추구형 조직보다는 프로젝트 단위로 움직이거나 적극적으로 방향성을 제안할 수 있는 위치에서 만족도가 높아요. 일의 진행 방향이 막막할 땐 일단 뭐라도 해보면서 답을 찾는 편이라 계획보다 실행이 앞서는 경우도 있어요. 새로운 프로젝트 제안이나 부서 이동 기회가 끌린다면 망설임 없이 손을 들고 일단 지원서부터 써보는 편이에요.",
+    relatedTheory: "Kristof-Brown의 Person-Environment Fit, Bandura의 자기효능감(Self-Efficacy) 이론, Wrzesniewski & Dutton의 Job Crafting.",
   },
   "CAR-secondary": {
     personality:
@@ -24,6 +28,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "업무 스타일",
     domainStyle:
       "변화가 많은 환경에서도 비교적 유연하게 적응하는 능력이 있어요. 즉각적인 성과보다 이 경험에서 뭘 배울 수 있는지 자주 되묻는 편이라, 장기적으로 커리어를 짜는데 강점이 있어요. 다만 결단이 필요한 순간에 머릿속에서 분석을 하느라 시간을 끄는 경향이 있을지도요. 그럴 땐 동료나 친구가 먼저 이직 소식을 전하는 등의 계기로 자기 방향을 곱씹어보며 동기를 얻기도 해요.",
+    relatedTheory: "Gross의 정서조절 과정모델(인지적 재평가), Hayes의 수용전념치료(ACT), Folkman & Lazarus의 정서중심대처.",
   },
   "CAR-disengage": {
     personality:
@@ -31,6 +36,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "업무 스타일",
     domainStyle:
       "당장 급한 실무는 잘 처리하지만 '이 직장을 계속 다니는 게 맞을까' 같은 큰 질문은 부담스러운지 뒤로 미루는 경향이 있어요. 그래서 주변에서는 오히려 안정적으로 볼 수 있어요. 정작 본인은 가끔 이대로 괜찮은지 생각하면 스트레스가 확 올라오는 걸 느끼는데도 말이에요. 이런 특성이 계속 이어지면 연말 고과나 이직 인터뷰 같은 중요한 일정의 자료를 읽지 않고 미뤄두는 습관이 생길 수도 있어요.",
+    relatedTheory: "Roth & Cohen의 접근-회피 대처(Approach-Avoidance Coping), Hayes의 경험 회피(Experiential Avoidance) 개념, Compas의 이탈(Disengagement) 대처 모델.",
   },
   "LOV-primary": {
     personality:
@@ -38,6 +44,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "연애 스타일",
     domainStyle:
       "파트너와의 관계에서 모호한 상태를 견디기 어려워해요. 서운한 게 있으면 그날 안에 이야기하려 하고 관계의 방향성에 대해서도 먼저 소통을 시도하는 성향이에요. 이런 적극성 덕분에 관계에서 많은 문제를 해결할 수 있지만 가끔은 상대에게 생각할 시간을 주는 것도 도움이 될 수 있어요. 데이트 중 상대의 표정이 평소와 다르게 느껴지면 바로 '무슨 일 있어?' 하고 물어보는 편이라 자신이 오래 묵히는 감정이 거의 없어요.",
+    relatedTheory: "Hazan & Shaver의 성인 애착 유형(Adult Attachment), Sternberg의 사랑의 삼각형 이론, Lazarus & Folkman의 문제중심대처.",
   },
   "LOV-secondary": {
     personality:
@@ -45,6 +52,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "연애 스타일",
     domainStyle:
       "파트너와 다투고 나서도 시간이 지나면 자연스럽게 상대의 입장을 이해해보려 하는 편이에요. 관계를 장기적으로 보는 시선이 강점이지만, 표현 안한 서운함이 조금씩 쌓이고 있진 않은지 가끔 자신에게 물어보는 것도 좋아요. 상대의 연락이 평소보다 뜸하면 '무슨 일 있나' 걱정하면서도 먼저 묻기보다는 여러 가능성을 혼자 헤아리며 기다려보는 쪽이에요.",
+    relatedTheory: "Gross의 정서조절 과정모델, Bowlby·Ainsworth의 애착이론, Rusbult의 관계 적응(Accommodation) 모델.",
   },
   "LOV-disengage": {
     personality:
@@ -52,6 +60,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "연애 스타일",
     domainStyle:
       "관계가 깊어질 수 있는 기회나 갈등이 생기는 순간 대화 대신 침묵이나 물리적 거리로 반응하는 경우가 많아요. 파트너 입장에서는 무슨 생각을 하는지 몰라 답답함을 느낄 수 있지만 본인도 그 순간 정확히 무엇을 느끼는지 파악하기 어려워서일 수 있어요. 다툰 뒤에는 각자 시간을 좀 갖는 쪽을 선호하고, 그 사이엔 평소보다 연락이 눈에 띄게 줄어드는 경우가 많아요.",
+    relatedTheory: "Hazan & Shaver의 회피애착(Avoidant Attachment), Gottman의 담쌓기(Stonewalling) 개념, Compas의 이탈 대처 모델.",
   },
   "REL-primary": {
     personality:
@@ -59,6 +68,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "관계 스타일",
     domainStyle:
       "관계 안에서 모호하게 넘어가는 부분이 쌓이는 걸 불편해해요. 서운하거나 답답한 점은 참고 묵혀두기보다 적당한 때를 골라 꺼내는 편이라, 주변 사람들에게 솔직하고 믿을 만한 사람으로 통하는 경우가 많아요. 다만 모두가 같은 속도로 대화할 준비가 되어 있는 건 아니라서, 가끔은 상대의 속도에 맞춰주는 것도 도움이 될 수 있어요.",
+    relatedTheory: "Bowen의 가족체계이론(자기분화), Cloud & Townsend의 경계(Boundaries) 이론, Ryan & Deci의 자기결정이론(자율성 욕구).",
   },
   "REL-secondary": {
     personality:
@@ -66,6 +76,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "관계 스타일",
     domainStyle:
       "주변 사람들과 부딪히는 일이 적어 관계가 대체로 원만하게 유지돼요. 누군가의 말이 마음에 걸려도 그 뜻을 좋은 쪽으로 받아들이려는 편이라 관계가 쉽게 틀어지지 않아요. 다만 내 필요는 뒤로 미뤄둔 채 이해만 쌓이고 있는 건 아닌지 살펴보는 것도 좋아요. 친구가 약속을 급하게 바꿔도 '요즘 되게 바쁜가보네' 생각하며 혼자 아쉬움을 달래는 편이거든요.",
+    relatedTheory: "Cloud & Townsend의 경계(Boundaries) 이론, Gross의 정서조절 과정모델(인지적 재평가), Rogers의 공감적 이해.",
   },
   "REL-disengage": {
     personality:
@@ -73,6 +84,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "관계 스타일",
     domainStyle:
       "껄끄러운 대화가 예상되는 자리는 가능하면 피하고, 불편한 부탁은 거절하기보다 답을 미루는 쪽을 택하곤 해요. 그래서 겉으로는 무난하게 지내는 것처럼 보이지만, 마음속엔 정리하고 싶은 관계들이 쌓여 있을 수 있어요. 친구와 서운한 일이 생기면 자리를 마련해 이야기를 꺼내기보다 연락을 조금씩 줄이며 자연스럽게 거리를 두게 되는 경우가 많아요.",
+    relatedTheory: "Baumeister & Leary의 소속 욕구(Need to Belong), Roth & Cohen의 접근-회피 대처, Compas의 이탈 대처 모델.",
   },
   "SLF-primary": {
     personality:
@@ -80,6 +92,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "나를 대하는 스타일",
     domainStyle:
       "스스로가 부족하게 느껴지는 날엔 할 일 목록부터 꺼내 드는 편이에요. 무언가를 끝내고 나면 마음이 한결 가벼워지지만, 그 만족감에 머물기보다 다음 할 일이 먼저 눈에 들어오기도 해요. 아무것도 하지 않고 쉬는 시간이 오히려 불편하게 느껴질 때도 있죠. 주말에 푹 쉬고 난 일요일 밤, 주말동안 한 게 없다는 생각에 괜히 마음이 무거워지는 순간이 있을 수 있어요.",
+    relatedTheory: "Crocker & Wolfe의 조건부 자기가치(Contingent Self-Worth) 이론, Deci & Ryan의 자기결정이론(SDT) 중 유능감 욕구, Lazarus & Folkman의 문제중심대처 모델.",
   },
   "SLF-secondary": {
     personality:
@@ -87,6 +100,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "나를 대하는 스타일",
     domainStyle:
       "기대만큼 해내지 못한 날에도 그날을 오랫동안 곱씹기보단 빨리 털어내는 편이에요. 누군가의 반응이 서운하게 느껴져도 그것을 자신의 가치와 연결시키지 않으려 마음을 다잡곤 해요. 다만 괜찮다는 말이 진짜 마음에서 나온 것인지, 나의 불편한 마음을 재빨리 덮으려는 마음에서 나온 것인지는 가끔 구분해볼 필요가 있어요. 더 잘할 수 있을 것 같았던 순간에도 '그 정도면 충분히 잘했어' 하고 위안을 하는 편이거든요.",
+    relatedTheory: "Neff의 자기자비(Self-Compassion) 이론, Rogers의 무조건적 긍정적 존중(Unconditional Positive Regard), Gross의 정서조절 과정모델.",
   },
   "SLF-disengage": {
     personality:
@@ -94,6 +108,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "나를 대하는 스타일",
     domainStyle:
       "스스로가 초라하게 느껴지는 날이면 그 생각을 붙잡기보다 영상을 틀거나 일찍 잠을 청하며 하루를 넘기곤 해요. 겉으로는 한결같아 보이지만, 가까운 사람은 자신에 대한 불안정감이 마음 한켠에 있다는 걸 어렴풋이 알고 있을 수 있어요. '요즘 어떻게 살아?'라는 질문에 '그냥 그렇지 뭐' 하며 가볍게 넘기는 경우가 많아요.",
+    relatedTheory: "Rosenberg의 자아존중감(Self-Esteem) 이론, Roth & Cohen의 접근-회피 대처, Compas의 이탈 대처 모델.",
   },
   "DIR-primary": {
     personality:
@@ -101,6 +116,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "삶을 살아내는 스타일",
     domainStyle:
       "막연한 질문을 막연하게 두지 않고, 구체화시키고 답을 찾기 위한 행동을 하나씩 시도해보는 편이에요. 새로운 관심사가 생기면 바로 체험해보는 법을 알아보고 부딪혀보는 편이죠. 다만 이것저것 시도만 하다 보면, 정작 나에게 진짜 중요한 건 무엇인지 정리할 틈 없이 다음 탐색으로 넘어가기도 해요. 삶이 정체된 것 같다는 느낌이 들면 다양한 원데이 클래스에 등록하거나 가보지 않은 곳으로 훌쩍 여행을 떠나보는 편이에요.",
+    relatedTheory: "Savickas의 진로구성이론(Career Construction Theory), Sheldon & Elliot의 자기일치모델(Self-Concordance Model), Bandura의 자기효능감 이론.",
   },
   "DIR-secondary": {
     personality:
@@ -108,6 +124,7 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "삶을 살아내는 스타일",
     domainStyle:
       "방향성이 불확실한 시기에도 조급해하지 않고 지금 가지고 있는 것들에서 의미를 찾으려 해요. 이런 여유 덕분에 쉽게 지치지 않을 수 있지만, 가끔은 진취적으로 방향성을 찾아나가는 행동력도 필요해요. '앞으로 뭐하면서 살고싶어?'라는 질문에 확답 대신 '요즘은 이런 게 좋은 거 같은데'라며 현재의 소소한 의미들을 소중히 여기는 편이에요.",
+    relatedTheory: "Frankl의 의미치료(Logotherapy), Steger의 삶의 의미(Meaning in Life) 척도, Gross의 정서조절 과정모델.",
   },
   "DIR-disengage": {
     personality:
@@ -115,5 +132,6 @@ export const BASE_KNOWLEDGE: Record<TypeCode, BaseKnowledgeEntry> = {
     domainStyleLabel: "삶을 살아내는 스타일",
     domainStyle:
       "먼 미래보다는 눈앞에 주어진 하루를 처리하는 데 집중하는 편이에요. '나는 뭘 원하지?' 같은 질문이 떠오르면 부담스러운 느낌이 올라와 다른 생각으로 넘어가거나 업무에 집중하곤 해요. 그래서 하루하루는 무난히 지나가지만, 문득 '나는 뭘 위해 이렇게 사는 걸까' 하는 공허함이 스칠 수 있어요. 새해 목표가 뭐냐는 질문이 나오면 '그냥 올해도 무탈하게' 하고 깊은 생각 없이 넘기곤 해요.",
+    relatedTheory: "McKnight & Kashdan의 삶의 목적(Purpose) 이론, Roth & Cohen의 접근-회피 대처, Compas의 이탈 대처 모델.",
   },
 };

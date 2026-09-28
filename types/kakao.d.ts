@@ -18,6 +18,18 @@ declare global {
           };
           buttons?: { title: string; link: { mobileWebUrl: string; webUrl: string } }[];
         }) => void;
+        // 2026-09-28: 팝업 차단 회피용으로 추가 — 버튼에 카카오가 직접 클릭 리스너를 붙입니다.
+        createDefaultButton: (options: {
+          container: string;
+          objectType: "feed";
+          content: {
+            title: string;
+            description: string;
+            imageUrl: string;
+            link: { mobileWebUrl: string; webUrl: string };
+          };
+          buttons?: { title: string; link: { mobileWebUrl: string; webUrl: string } }[];
+        }) => void;
       };
     };
   }

@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { DESSERT, TYPE_LINE2, type TypeCode } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
 import { InstagramIcon, KakaoTalkIcon, LinkIcon, NaverIcon, XIcon, YoutubeIcon } from "@/components/BrandIcons";
+
+const KAKAO_BUTTON_ID = "ssol-kakao-share-btn";
 
 interface Props {
   typeCode: TypeCode;
@@ -61,46 +64,31 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
   // TODO: 2단계에서 실제 연동 — 결과 저장 후 결과별 공유 URL(/r/[id])과 OG 이미지로 교체
   const shareUrl = typeof window !== "undefined" ? window.location.origin + "/" : "";
 
-  // 카카오톡 공유가 안 된다는 의견이 있어 확인해보니: PC 브라우저(또는 카카오톡/인스타그램 인앱
-  // 브라우저처럼 팝업 자체를 막는 환경)에서는 Kakao.Share.sendDefault()가 sharer.kakao.com을 새
-  // 창으로 여는데, 그 팝업이 차단되면 카카오 SDK 내부에서 "Cannot read properties of null
-  // (reading 'focus')" 에러가 처리되지 않은 채로 터지면서 아무 반응도 없는 것처럼 보였습니다.
-  // → 미리 빈 팝업을 하나 띄워봐서 막혀 있는지 먼저 확인하고, 막혀 있으면 SDK를 아예 부르지 않고
-  //   바로 링크 복사로 대신합니다(사용자에게는 항상 뭔가는 되는 것처럼 보여야 하니까요).
+  // 링크 복사로 대신할 때 공통으로 쓰는 함수.
   const linkCopyFallback = async (message: string) => {
     try {
       await copyText(shareText + " " + shareUrl);
       onToast(message);
     } catch {
-      onToast("링크 복사에 실패했어요. 브라우저의 팝업 차단을 해제한 뒤 다시 시도해주세요.");
+      onToast("복사에 실패했어요. 잠시 후 다시 시도해주세요.");
     }
     onClose();
   };
 
-  const shareToKakao = async () => {
+  // 2026-09-28: "카카오톡 공유 누르면 오류난다" 재확인 결과 — 예전 방식(onClick 안에서
+  // Kakao.Share.sendDefault()를 나중에 호출)은 브라우저 입장에서 "방금 사용자가 클릭한
+  // 동작"으로 인식되지 않을 때가 많아서, 카카오 SDK가 내부적으로 여는 팝업이 자주 막혔습니다
+  // (그 결과 "Cannot read properties of null (reading 'focus')"). 카카오 SDK가 공식
+  // 제공하는 createDefaultButton()으로 바꿨습니다 — 이건 카카오가 버튼에 직접 클릭 리스너를
+  // 붙이는 방식이라, 실제 클릭으로 인식되어 팝업이 훨씬 안정적으로 열립니다.
+  const kakaoBoundRef = useRef(false);
+  useEffect(() => {
+    kakaoBoundRef.current = false;
     const kakao = typeof window !== "undefined" ? window.Kakao : undefined;
-    if (kakao?.isInitialized()) {
-      const probe = window.open("", "_blank");
-      if (!probe) {
-        await linkCopyFallback("카카오톡 공유 팝업이 차단돼 있어요. 대신 링크가 복사됐어요 — 카카오톡에 붙여넣어 보내보세요.");
-        return;
-      }
-      probe.close();
-
-      // 팝업 확인을 통과해도, 카카오 SDK가 내부적으로 창을 다시 여는 시점이 늦어지면 그 사이에
-      // 브라우저가 뒤늦게 막아버리는 경우가 남아있어요. 그때 SDK 내부에서 던지는 처리 안 된
-      // 에러가 사용자에게 그대로 노출되지 않도록 잠깐만 감시해서 조용히 안내로 바꿔치기합니다.
-      const onUnhandled = (e: PromiseRejectionEvent) => {
-        const msg = e.reason instanceof Error ? e.reason.message : String(e.reason);
-        if (msg.includes("focus")) {
-          e.preventDefault();
-          linkCopyFallback("카카오톡 공유창을 열지 못했어요. 대신 링크가 복사됐어요 — 카카오톡에 붙여넣어 보내보세요.");
-        }
-      };
-      window.addEventListener("unhandledrejection", onUnhandled);
-      setTimeout(() => window.removeEventListener("unhandledrejection", onUnhandled), 3000);
-
-      kakao.Share.sendDefault({
+    if (!kakao?.isInitialized()) return;
+    try {
+      kakao.Share.createDefaultButton({
+        container: `#${KAKAO_BUTTON_ID}`,
         objectType: "feed",
         content: {
           title: `${dessert.name} · ${TYPE_LINE2[typeCode]}`,
@@ -110,10 +98,21 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
         },
         buttons: [{ title: "나도 테스트하기", link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }],
       });
-      onClose();
+      kakaoBoundRef.current = true;
+    } catch (err) {
+      console.error("카카오 공유 버튼 바인딩 실패:", err);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeCode]);
+
+  // 카카오 버튼에 createDefaultButton이 성공적으로 붙었으면 카카오 SDK가 알아서 클릭을
+  // 처리하니 여기서는 그냥 시트를 닫기만 합니다. 아직 못 붙었으면(키 없음 등) 링크 복사로
+  // 대신합니다.
+  const shareToKakao = async () => {
+    if (kakaoBoundRef.current) {
+      setTimeout(onClose, 250);
       return;
     }
-    // 카카오 JS 키가 아직 없으면(NEXT_PUBLIC_KAKAO_JS_KEY 미설정) 링크 복사로 대신합니다.
     await linkCopyFallback("카카오톡 공유는 준비 중이에요. 대신 링크가 복사됐어요 — 카카오톡에 붙여넣어 보내보세요.");
   };
 
@@ -173,7 +172,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
         <div className="sheet-handle" />
         <p className="sheet-title">결과 공유하기</p>
         <div className="share-grid">
-          <button type="button" className="share-opt" onClick={shareToKakao}>
+          <button type="button" id={KAKAO_BUTTON_ID} className="share-opt" onClick={shareToKakao}>
             <span className="share-opt-icon" style={{ background: "#FEE500", color: "#3A2E1F" }}>
               <KakaoTalkIcon width={24} height={24} />
             </span>

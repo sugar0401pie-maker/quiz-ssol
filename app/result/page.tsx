@@ -64,7 +64,11 @@ export default function ResultPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        if (!cancelled) router.replace("/");
+        // 2026-09-28: "비로그인으로 /result에 직접 들어가면 로그인 화면으로" 요청 — 이전엔
+        // 첫 화면("/")으로 보냈는데, 여기서는 곧장 로그인 화면으로 보냅니다. /login은 로그인
+        // 직후 저장된 결과가 있으면 자동으로 불러와서 다시 /result로 돌려보내는 로직을 이미
+        // 갖고 있어서, 그대로 재사용하면 됩니다.
+        if (!cancelled) router.replace("/login");
         return;
       }
       const res = await fetch("/api/results");
@@ -97,6 +101,36 @@ export default function ResultPage() {
   const showSavedToast = () => {
     setToast("저장되었습니다!");
     setTimeout(() => setToast(""), 2200);
+  };
+
+  // 2026-09-28: "로그인/로그아웃이 어디 보이면 좋겠다"는 요청 — 화면 맨 하단에 현재 로그인
+  // 상태에 맞는 링크 하나를 둡니다. 위의 result-복원 effect와는 별개로, result가 이미 있는
+  // 상태(방금 테스트를 마친 경우 등)에서도 로그인 여부를 알아야 하므로 따로 확인합니다.
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!cancelled) {
+        setIsLoggedIn(!!user);
+        setAuthChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setIsLoggedIn(false);
+    setToast("로그아웃했어요.");
+    setTimeout(() => setToast(""), 2000);
   };
 
   // 2026-09-25: "로그인된 상태에서 결과 저장하기를 눌렀는데 왜 다시 로그인/가입 화면으로
@@ -318,6 +352,20 @@ export default function ResultPage() {
       </button>
 
       <div className="notice">{DISCLAIMER}</div>
+
+      {authChecked && (
+        <p style={{ textAlign: "center", marginTop: 14 }}>
+          {isLoggedIn ? (
+            <button type="button" className="text-link" onClick={handleLogout}>
+              로그아웃
+            </button>
+          ) : (
+            <button type="button" className="text-link" onClick={() => router.push("/login")}>
+              로그인하기
+            </button>
+          )}
+        </p>
+      )}
 
       {sheetOpen && <ShareSheet typeCode={typeCode} onClose={() => setSheetOpen(false)} onToast={setToast} />}
     </div>

@@ -16,7 +16,7 @@ const SECTION_TITLES = [
   "당신의 웰니스 프로파일",
   "주목할 만한 부분은",
   "", // 3번은 영역에 따라 제목이 바뀜(아래 sectionTitle3 참고)
-  "한 겹 더 들여다보기",
+  "더 자세히 들여다보면",
   "", // 5번도 영역 이름이 들어감(아래 sectionTitle5 참고)
   "다른 유형과의 궁합",
   "앞으로 나아갈 방향",
@@ -206,7 +206,8 @@ export default function ReportPage() {
 
   const profile = buildDomainProfile(typeCode, confirmedAxis, axisScores);
   const sectionTitle3 = `${axisKR}${EUL_REUL(axisKR)} 다루는 나의 방식`;
-  const sectionTitle5 = `${axisKR} 속 나의 모습`;
+  const sectionTitle4 = "더 자세히 들여다보면";
+  const sectionTitle5 = `${axisKR}${EUL_REUL(axisKR)} 고민하는 나의 모습`;
 
   // 1번(웰니스 프로파일) — 무료. 결제 여부와 무관하게 항상 전부 펼쳐진 상태로 보여줍니다.
   const profileSection = (
@@ -244,7 +245,7 @@ export default function ReportPage() {
           <p key={i} className="type-blurb">{p}</p>
         ))}
 
-        <p className="traits-title">4. {SECTION_TITLES[3]}</p>
+        <p className="traits-title">4. {sectionTitle4}</p>
         {assembled.section4.map((p, i) => (
           <p key={i} className="type-blurb">{p}</p>
         ))}
@@ -324,7 +325,7 @@ export default function ReportPage() {
         <div className="report-section-body">{profileSection}</div>
       </div>
 
-      {[SECTION_TITLES[1], sectionTitle3, SECTION_TITLES[3], sectionTitle5, SECTION_TITLES[5], SECTION_TITLES[6], SECTION_TITLES[7]].map(
+      {[SECTION_TITLES[1], sectionTitle3, sectionTitle4, sectionTitle5, SECTION_TITLES[5], SECTION_TITLES[6], SECTION_TITLES[7]].map(
         (title, i) => (
           <div key={title} className="report-section" onClick={tapLocked}>
             <div className="report-section-head">
