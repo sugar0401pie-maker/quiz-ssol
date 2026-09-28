@@ -1,13 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
-import { AXIS_KR, DESSERT } from "@/lib/data";
+import { AXIS_KR, DESSERT, GENDER_TITLE } from "@/lib/data";
 import { EUL_REUL } from "@/lib/josa";
 import { buildDomainProfile, EXPERT_NOTICE_TEXT } from "@/lib/reportV3/domainProfile";
 import { createClient } from "@/lib/supabase/client";
+
+const SOWELLA_URL = "https://app.ssolwellnesshouse.com";
+const SOWELLA_MESSAGE =
+  "반갑습니다! 쏘웰라입니다. 테스트하실 때 가입하신 계정 아이디와 비밀번호로 쏘웰라 서비스를 그대로 이용할 수 있어요.";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
@@ -33,7 +37,17 @@ interface AssembledV3 {
   section8: string[];
 }
 
-type ViewState = "locked" | "ready" | "generating";
+type ViewState = "locked" | "ready" | "generating" | "failed";
+
+// "....." 부분이 움직이도록(400ms마다 1~4개 순환) — 로딩 문구 애니메이션.
+function useAnimatedDots() {
+  const [n, setN] = useState(1);
+  useEffect(() => {
+    const t = setInterval(() => setN((v) => (v % 4) + 1), 400);
+    return () => clearInterval(t);
+  }, []);
+  return ".".repeat(n);
+}
 
 // v3 인계서 — 심층 리포트 8섹션. 1번(웰니스 프로파일)은 결정론적 조립이라 결제 없이 무료로
 // 즉시 보여주고, 2~8번은 결제 후 OpenAI가 생성합니다(대기 필요 — "generating" 상태로 폴링).
@@ -44,26 +58,48 @@ export default function ReportPage() {
   const [view, setView] = useState<ViewState>("locked");
   const [assembled, setAssembled] = useState<AssembledV3 | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false);
+  const [mailAddr, setMailAddr] = useState("");
+  const [mailBusy, setMailBusy] = useState(false);
+  const dots = useAnimatedDots();
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!result) router.replace("/");
   }, [result, router]);
 
+  // gpt-6-sol(reasoning) 생성 중엔 서버가 "generating" 락 상태를 반환합니다 — 준비될 때까지
+  // 보고서 페이지만 몇 초 간격으로 조용히 다시 물어보고(자동 새로고침), 완료되면 바로 화면을 바꿉니다.
   const fetchReport = async (resultId: string) => {
-    const res = await fetch(`/api/report/generate?resultId=${resultId}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.status === "ready" && data.assembled) {
+    let data: { status?: string; assembled?: AssembledV3 } | null = null;
+    try {
+      const res = await fetch(`/api/report/generate?resultId=${resultId}`);
+      if (!res.ok) return; // 타임아웃 등 — 다음 폴링에서 재시도
+      data = await res.json();
+    } catch {
+      return; // 네트워크 오류 — 다음 폴링에서 재시도
+    }
+    if (data?.status === "ready" && data.assembled) {
       setAssembled(data.assembled);
       setView("ready");
-    } else if (data.status === "paid_needs_generation") {
-      setView("generating");
-      setToast("리포트를 새로 쓰는 중이에요. 잠시만 기다려주세요… (약 10~20초)");
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
+    } else if (data?.status === "generating") {
+      setView((v) => (v === "ready" ? v : "generating"));
+    } else if (data?.status === "failed") {
+      setView("failed");
     }
   };
 
   useEffect(() => {
-    if (savedResultId) fetchReport(savedResultId);
+    if (!savedResultId) return;
+    fetchReport(savedResultId);
+    pollTimer.current = setInterval(() => fetchReport(savedResultId), 4000);
+    return () => {
+      if (pollTimer.current) clearInterval(pollTimer.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedResultId]);
 
@@ -198,6 +234,46 @@ export default function ReportPage() {
     await fetchReport(outcome.id);
   };
 
+  // "결과 저장하기" — 이미 자동으로 계정에 저장돼 있지만, 혹시 몰라 눈에 보이는 확인 버튼을 둡니다.
+  const handleSaveResult = async () => {
+    setBusy(true);
+    const outcome = await ensureSavedResult();
+    setBusy(false);
+    setToast(outcome.ok ? "결과가 계정에 저장돼 있어요." : "저장 확인에 실패했어요. 잠시 후 다시 시도해주세요.");
+  };
+
+  const openMailModal = async () => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    setMailAddr(user?.email ?? "");
+    setMailOpen(true);
+  };
+
+  const sendMail = async () => {
+    if (!savedResultId || !mailAddr.trim() || !mailAddr.includes("@")) {
+      setToast("이메일 주소를 확인해주세요.");
+      return;
+    }
+    setMailBusy(true);
+    const res = await fetch("/api/report/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resultId: savedResultId, email: mailAddr.trim() }),
+    });
+    setMailBusy(false);
+    setMailOpen(false);
+    setToast(res.ok ? `${mailAddr.trim()}(으)로 보냈어요.` : "메일 발송에 실패했어요. 잠시 후 다시 시도해주세요.");
+  };
+
+  const goSowella = () => {
+    setToast(SOWELLA_MESSAGE);
+    setTimeout(() => {
+      window.location.href = SOWELLA_URL;
+    }, 1800);
+  };
+
   const backBtn = (
     <button className="secondary" style={{ width: "auto", padding: "8px 14px", fontSize: 14, marginBottom: 16 }} onClick={() => router.push("/result")}>
       ← 뒤로
@@ -275,12 +351,53 @@ export default function ReportPage() {
         <button className="secondary" style={{ marginTop: 16 }} onClick={() => router.push("/match")}>
           다른 유형과 나의 관계는 어떨까?!
         </button>
+
+        <div className="report-actions">
+          <div className="report-actions-row">
+            <button className="secondary" onClick={handleSaveResult} disabled={busy}>
+              결과 저장하기
+            </button>
+            <button className="secondary" onClick={openMailModal}>
+              메일로 보내기
+            </button>
+          </div>
+          <button className="btn-lg report-actions-sowella" onClick={goSowella}>
+            웰니스 채팅 &lsquo;쏘웰라&rsquo; 이용하기
+          </button>
+        </div>
+
+        {mailOpen && (
+          <div className="confirm-overlay" onClick={() => !mailBusy && setMailOpen(false)}>
+            <div className="confirm-box" onClick={(e) => e.stopPropagation()}>
+              <p className="confirm-msg">이 메일 주소로 보낼게요</p>
+              <p className="mail-field-label">이메일</p>
+              <input
+                type="email"
+                className="text-input"
+                value={mailAddr}
+                onChange={(e) => setMailAddr(e.target.value)}
+                placeholder="example@email.com"
+                style={{ marginBottom: 16 }}
+              />
+              <div className="confirm-actions">
+                <button className="secondary" onClick={() => setMailOpen(false)} disabled={mailBusy}>
+                  취소
+                </button>
+                <button className="btn-lg" onClick={sendMail} disabled={mailBusy}>
+                  {mailBusy ? "보내는 중…" : "보내기"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {toast && <div className="toast">{toast}</div>}
       </div>
     );
   }
 
   if (view === "generating") {
+    const honorific = `${userName}${GENDER_TITLE[userGender || "none"]}님`;
     return (
       <div className="card">
         {backBtn}
@@ -289,15 +406,28 @@ export default function ReportPage() {
         <p className="traits-title">1. {SECTION_TITLES[0]}</p>
         {profileSection}
         <div className="cta">
-          <p className="cta-title">2~8번 리포트를 쓰고 있어요…</p>
-          <p>보통 10~20초 걸려요. 이 화면을 잠깐만 기다려주세요.</p>
+          <p className="cta-title">
+            {honorific}의 심층 보고서를 작성하고 있어요{dots}
+          </p>
+          <p>완료되면 이 화면이 저절로 새로고침돼요. 잠깐만 기다려주세요.</p>
         </div>
-        <button
-          className="secondary"
-          style={{ marginTop: 16 }}
-          onClick={() => savedResultId && fetchReport(savedResultId)}
-        >
-          다시 확인하기
+        {toast && <div className="toast">{toast}</div>}
+      </div>
+    );
+  }
+
+  if (view === "failed") {
+    return (
+      <div className="card">
+        {backBtn}
+        <p className="kicker kicker-sm">심층 리포트</p>
+        <h1 className="serif">{dessert.name}의 웰니스 이야기</h1>
+        <div className="cta">
+          <p className="cta-title">리포트를 쓰는 중에 문제가 생겼어요</p>
+          <p>결제는 정상 처리됐어요 — 아래 버튼으로 다시 시도해주세요.</p>
+        </div>
+        <button className="btn-lg" style={{ marginTop: 16 }} onClick={() => savedResultId && fetchReport(savedResultId)}>
+          다시 시도하기
         </button>
         {toast && <div className="toast">{toast}</div>}
       </div>

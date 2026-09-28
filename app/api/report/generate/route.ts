@@ -5,9 +5,11 @@ import { generateReportV3 } from "@/lib/reportV3/generate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-// 2026-09-28: 이제 매 요청마다 OpenAI를 호출해서 응답이 예전보다 오래 걸릴 수 있어(재시도 포함
-// 최대 20~30초 안팎), 기본 제한(플랫폼별 10초)보다 여유를 둡니다.
-export const maxDuration = 60;
+// 2026-09-28: gpt-6-sol(reasoning, medium effort)로 전환하면서 생성 시간이 더 늘어날 수
+// 있어(Pro 플랜 기준 최대 300초까지 허용) 여유를 크게 둡니다. 그래도 함수가 중간에 죽는
+// 경우를 대비해 아래에 "generating" 락 + 오래된 락 무시 로직을 둡니다.
+export const maxDuration = 300;
+const STALE_GENERATION_MS = 90_000; // 이보다 오래 'generating' 상태면 이전 시도가 죽은 것으로 보고 재시도
 
 // 2026-09-28: v3 인계서(system_prompt_v3.md·base-knowledge-15types_v3·server_logic_v3.py)
 // 반영. 2~8번 섹션은 매번 OpenAI가 생성합니다(대표 시나리오 템플릿을 그대로 서빙하던 이전
@@ -24,13 +26,51 @@ async function getAuthedUser() {
   return user;
 }
 
-async function assembleAndStore(admin: ReturnType<typeof createAdminClient>, resultId: string, orderId: string, userId: string) {
+type GenerationOutcome =
+  | { status: "ready"; assembled: unknown }
+  | { status: "generating" }
+  | { status: "failed" };
+
+// 2026-09-28: gpt-6-sol 전환 후 생성 시간이 늘어나 "이미 생성 중"인지 락으로 확인합니다.
+// - 리포트 행이 없거나, 'generating'인데 STALE_GENERATION_MS보다 오래됐으면(이전 시도가 죽은
+//   것으로 판단) 이번 요청이 새로 락을 걸고 OpenAI를 호출합니다.
+// - 이미 최근에 'generating' 락이 걸려있으면(다른 탭/폴링 중인 요청이 진행 중) 이번 요청은
+//   OpenAI를 다시 부르지 않고 그냥 "generating"만 반환합니다 — 클라이언트는 몇 초 후 다시 폴링.
+async function startOrGetGeneration(
+  admin: ReturnType<typeof createAdminClient>,
+  resultId: string,
+  orderId: string,
+  userId: string
+): Promise<GenerationOutcome> {
+  const { data: existing } = await admin
+    .from("ssol_reports")
+    .select("status, assembled, created_at")
+    .eq("order_id", orderId)
+    .maybeSingle();
+
+  if (existing?.assembled) return { status: "ready", assembled: existing.assembled };
+
+  const isFreshLock = existing?.status === "generating" && Date.now() - new Date(existing.created_at).getTime() < STALE_GENERATION_MS;
+  if (isFreshLock) return { status: "generating" };
+
+  // 이번 요청이 락을 겁니다(락 없음/오래된 락/이전 실패 전부 이 경로).
+  const { error: lockError } = await admin
+    .from("ssol_reports")
+    .upsert({ order_id: orderId, result_id: resultId, user_id: userId, status: "generating", created_at: new Date().toISOString(), assembled: null }, { onConflict: "order_id" });
+  if (lockError) {
+    console.error("리포트 락 설정 실패:", lockError.message);
+    return { status: "failed" };
+  }
+
   const { data: result, error: resultError } = await admin
     .from("ssol_quiz_results")
     .select("type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers")
     .eq("id", resultId)
     .single();
-  if (resultError || !result) return null;
+  if (resultError || !result) {
+    await admin.from("ssol_reports").update({ status: "failed" }).eq("order_id", orderId);
+    return { status: "failed" };
+  }
 
   const typeCode = result.type_key as TypeCode;
   const [confirmedAxis, confirmedMode] = typeCode.split("-") as [AxisKey, ModeKey];
@@ -51,7 +91,8 @@ async function assembleAndStore(admin: ReturnType<typeof createAdminClient>, res
     sections = await generateReportV3(input);
   } catch (err) {
     console.error("v3 리포트 생성 실패:", err instanceof Error ? err.message : err);
-    return null;
+    await admin.from("ssol_reports").update({ status: "failed" }).eq("order_id", orderId);
+    return { status: "failed" };
   }
 
   const assembled = {
@@ -66,14 +107,15 @@ async function assembleAndStore(admin: ReturnType<typeof createAdminClient>, res
 
   const { data: saved, error: saveError } = await admin
     .from("ssol_reports")
-    .upsert({ order_id: orderId, result_id: resultId, user_id: userId, status: "ready", assembled, ready_at: new Date().toISOString() }, { onConflict: "order_id" })
+    .update({ status: "ready", assembled, ready_at: new Date().toISOString() })
+    .eq("order_id", orderId)
     .select("assembled")
     .single();
   if (saveError) {
     console.error("리포트 저장 실패:", saveError.message);
-    return null;
+    return { status: "failed" };
   }
-  return saved.assembled;
+  return { status: "ready", assembled: saved.assembled };
 }
 
 // 결제 여부 + 리포트 조립 상태 조회.
@@ -97,14 +139,10 @@ export async function GET(req: Request) {
     .maybeSingle();
   if (!order) return NextResponse.json({ status: "none" });
 
-  const { data: report } = await admin.from("ssol_reports").select("status, assembled").eq("order_id", order.id).maybeSingle();
-  if (report?.assembled) return NextResponse.json({ status: "ready", assembled: report.assembled });
-
-  // 결제는 됐지만 아직 조립된 적이 없는 경우 — 바로 조립해서 반환합니다(비용도 지연도 없으니
-  // 기다릴 이유가 없습니다).
-  const assembled = await assembleAndStore(admin, resultId, order.id, user.id);
-  if (!assembled) return NextResponse.json({ status: "paid_needs_generation" });
-  return NextResponse.json({ status: "ready", assembled });
+  const outcome = await startOrGetGeneration(admin, resultId, order.id, user.id);
+  if (outcome.status === "failed") return NextResponse.json({ status: "failed" });
+  if (outcome.status === "generating") return NextResponse.json({ status: "generating" });
+  return NextResponse.json({ status: "ready", assembled: outcome.assembled });
 }
 
 export async function POST(req: Request) {
@@ -139,10 +177,8 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!order) return NextResponse.json({ error: "payment required" }, { status: 403 });
 
-  const { data: existing } = await admin.from("ssol_reports").select("assembled").eq("order_id", order.id).maybeSingle();
-  if (existing?.assembled) return NextResponse.json({ status: "ready", assembled: existing.assembled });
-
-  const assembled = await assembleAndStore(admin, resultId, order.id, user.id);
-  if (!assembled) return NextResponse.json({ error: "generation failed" }, { status: 500 });
-  return NextResponse.json({ status: "ready", assembled });
+  const outcome = await startOrGetGeneration(admin, resultId, order.id, user.id);
+  if (outcome.status === "failed") return NextResponse.json({ error: "generation failed" }, { status: 500 });
+  if (outcome.status === "generating") return NextResponse.json({ status: "generating" });
+  return NextResponse.json({ status: "ready", assembled: outcome.assembled });
 }

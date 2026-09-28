@@ -168,6 +168,13 @@ button:active { transform: scale(0.98); }
 .confirm-msg { font-size: 15px; color: var(--ink); line-height: 1.6; margin: 0 0 20px; text-align: center; }
 .confirm-actions { display: flex; gap: 8px; }
 .confirm-actions button { flex: 1; margin: 0; }
+
+/* 2026-09-28: 심층 리포트 하단 액션 — 저장/메일은 한 줄에 2개, 쏘웰라는 그 아래 한 줄 전체. */
+.report-actions { margin-top: 20px; }
+.report-actions-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.report-actions-row button { flex: 1; margin: 0; }
+.report-actions-sowella { width: 100%; margin: 0; }
+.mail-field-label { font-size: 13px; color: var(--text2); margin: 0 0 6px; text-align: left; }
 .restart { margin-top: 16px; }
 .traits-title { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 10px; }
 .traits { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 8px; }

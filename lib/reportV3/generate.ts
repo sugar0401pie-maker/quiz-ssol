@@ -54,7 +54,10 @@ function totalChars(sections: GeneratedSectionsV3): number {
 export async function generateReportV3(input: ReportV3Input): Promise<GeneratedSectionsV3> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
-  const model = process.env.OPENAI_REPORT_MODEL || "gpt-4o-mini";
+  // 2026-09-28: gpt-6-sol(reasoning 모델, medium 추론 기본)로 전환 — run_sol_test.py 기준.
+  // reasoning 모델은 chat.completions가 아니라 responses.create + reasoning.effort로 호출합니다.
+  const model = process.env.OPENAI_REPORT_MODEL || "gpt-6-sol";
+  const effort = (process.env.OPENAI_REPORT_EFFORT || "medium") as "low" | "medium" | "high";
   const client = new OpenAI({ apiKey });
 
   const system = buildSystemPrompt();
@@ -62,15 +65,18 @@ export async function generateReportV3(input: ReportV3Input): Promise<GeneratedS
 
   let lastSections: GeneratedSectionsV3 | null = null;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await client.chat.completions.create({
+    const res = await client.responses.create({
       model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      temperature: 0.7,
+      reasoning: { effort },
+      instructions: system,
+      input: user,
+      max_output_tokens: 25000,
     });
-    const text = res.choices[0]?.message?.content ?? "";
+    if (res.status === "incomplete") {
+      console.error("심층 리포트 생성이 잘렸어요:", res.incomplete_details?.reason);
+      continue; // 잘린 결과는 쓰지 않고 재시도
+    }
+    const text = res.output_text ?? "";
     const sections = parseSections(text);
     lastSections = sections;
     // 3,000~4,400자 목표(공백 제외) — 너무 짧으면 한 번 더 시도합니다.
