@@ -159,7 +159,15 @@ button:active { transform: scale(0.98); }
 @keyframes pulse-fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 .pulse-text { animation: pulse-fade 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .pulse-text { animation: none; } }
-.toast { margin-top: 10px; font-size: 17px; font-weight: 700; color: var(--navy-soft); text-align: center; }
+/* 2026-09-28: "왜 안내 문구가 본문보다 커?" 피드백 — 17px·bold였던 걸 본문(16px)보다
+   차분하게 낮췄습니다. */
+.toast { margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--navy-soft); text-align: center; }
+/* 2026-09-28: 섹션 8 마지막 문단(볼드, "1주일 AI 채팅 이용권" 안내)만 핑크 테두리로 감싸고,
+   나머지 문단은 배경 채움 없이 본문처럼 둡니다. */
+.section8-highlight {
+  border: 1.5px solid var(--navy); border-radius: 14px; padding: 14px 16px; margin: 4px 0 20px;
+}
+.section8-highlight p { margin: 0; color: var(--ink); font-weight: 700; }
 .text-link {
   background: none; border: none; padding: 0; margin: 0; width: auto; display: inline;
   font-size: 12.5px; color: var(--text3); text-decoration: underline; cursor: pointer;

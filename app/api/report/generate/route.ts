@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { type AxisKey, type ModeKey, type TypeCode } from "@/lib/data";
 import { buildReportV3Input } from "@/lib/reportV3/buildInput";
-import { generateReportV3 } from "@/lib/reportV3/generate";
+import { generateReportV3, generateSections2to8 } from "@/lib/reportV3/generate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -66,7 +66,7 @@ async function startOrGetGeneration(
 
   const { data: result, error: resultError } = await admin
     .from("ssol_quiz_results")
-    .select("type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers")
+    .select("type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers, section1_preview")
     .eq("id", resultId)
     .single();
   if (resultError || !result) {
@@ -88,9 +88,15 @@ async function startOrGetGeneration(
     part2Answers: result.part2_answers,
   });
 
+  // 2026-09-28: 결제 전에 무료로 섹션 1을 이미 생성해뒀다면(section1_preview), 그걸 그대로
+  // 재사용하고 2~8번만 새로 씁니다 — 같은 사람에게 섹션 1이 두 번 다르게 나오는 걸 막고
+  // 비용도 아낍니다. 캐싱된 게 없으면(마이그레이션 전이었거나 처음 결제하는 경우) 1~8번
+  // 전부를 한 번에 생성합니다.
   let sections;
   try {
-    sections = await generateReportV3(input);
+    sections = result.section1_preview
+      ? await generateSections2to8(input, result.section1_preview as string[])
+      : await generateReportV3(input);
   } catch (err) {
     console.error("v3 리포트 생성 실패:", err instanceof Error ? err.message : err);
     await admin.from("ssol_reports").update({ status: "failed" }).eq("order_id", orderId);
