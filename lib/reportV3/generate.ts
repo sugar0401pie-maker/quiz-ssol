@@ -3,10 +3,12 @@ import OpenAI from "openai";
 import { splitIntoParagraphs } from "../paragraphSplit";
 import { buildSystemPrompt, buildUserPrompt, type ReportV3Input } from "./prompt";
 
-// 2026-09-28: v3 리포트 — 섹션 2~8을 OpenAI가 생성합니다. 1번(웰니스 프로파일)은
-// lib/reportV3/domainProfile.ts가 결정론적으로 조립해 별도로 무료 제공됩니다.
+// 2026-09-28: v6 프롬프트 반영 — 이제 섹션 1(웰니스 프로파일)도 OpenAI가 직접 씁니다.
+// (이전엔 lib/reportV3/domainProfile.ts가 결정론적으로 조립해 결제 없이 무료로 먼저
+// 보여줬지만, v6는 1~8번 전부를 하나의 통합 리포트로 취급합니다 — 더 이상 무료 미리보기 없음.)
 
 export interface GeneratedSectionsV3 {
+  section1: string[];
   section2: string[];
   section3: string[];
   section4: string[];
@@ -17,6 +19,7 @@ export interface GeneratedSectionsV3 {
 }
 
 const SECTION_HEADERS: Record<string, keyof GeneratedSectionsV3> = {
+  "1": "section1",
   "2": "section2",
   "3": "section3",
   "4": "section4",
@@ -27,7 +30,7 @@ const SECTION_HEADERS: Record<string, keyof GeneratedSectionsV3> = {
 };
 
 function parseSections(markdown: string): GeneratedSectionsV3 {
-  const result: GeneratedSectionsV3 = { section2: [], section3: [], section4: [], section5: [], section6: [], section7: [], section8: [] };
+  const result: GeneratedSectionsV3 = { section1: [], section2: [], section3: [], section4: [], section5: [], section6: [], section7: [], section8: [] };
   const matches = [...markdown.matchAll(/### (\d)\.[^\n]*\n\n([\s\S]*?)(?=\n### \d\.|\s*$)/g)];
   for (const m of matches) {
     const key = SECTION_HEADERS[m[1]];
@@ -79,9 +82,9 @@ export async function generateReportV3(input: ReportV3Input): Promise<GeneratedS
     const text = res.output_text ?? "";
     const sections = parseSections(text);
     lastSections = sections;
-    // 3,000~4,400자 목표(공백 제외) — 너무 짧으면 한 번 더 시도합니다.
+    // 4,800~6,800자 목표(공백 제외, v6 기준 — 섹션 1 포함) — 너무 짧으면 한 번 더 시도합니다.
     const chars = totalChars(sections);
-    if (chars >= 1800) return sections;
+    if (chars >= 3500) return sections;
   }
   return lastSections!;
 }

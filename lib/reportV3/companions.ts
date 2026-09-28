@@ -50,6 +50,9 @@ export interface ContrastType {
   mode: string;
 }
 
+// 2026-09-28: v6 프롬프트/샘플 반영 — 궁합 상대를 동행형·이웃형·대조형 각 2명(또는 1~2명)이
+// 아니라 카테고리당 정확히 1명만 다루도록 단순화. 순위/정렬 로직은 그대로 두고 1위만 취합니다.
+
 /** 주도요인 = 확정 영역 안에서 가장 낮은 하위요인(들). 동점이면 전부 반환. */
 export function leadFactors(f: Record<FactorKey, number>, axisFactors: FactorKey[]): FactorKey[] {
   const vals = axisFactors.map((k) => f[k]);
@@ -65,26 +68,24 @@ export function leadGroup(leads: FactorKey[]): string {
   return groups.size === 1 ? [...groups][0] : "G2";
 }
 
-/** 동행형: 같은 영역, 다른 대처방식 2명. 주도요인 그룹의 대처 순위대로. */
-export function companions(axis: AxisKey, mode: ModeKey, group: string): CompanionType[] {
+/** 동행형: 같은 영역, 다른 대처방식 1명 — 주도요인 그룹의 대처 순위에서 가장 앞선 상대. */
+export function companions(axis: AxisKey, mode: ModeKey, group: string): CompanionType {
   const rank = GROUP_RANK[group] ?? GROUP_RANK.G2;
-  const others = rank.filter((m) => m !== mode);
-  return others.map((m) => {
-    let fitContext: FitContext;
-    if (group === "G2" && new Set([m, mode]).size === 2 && m !== "disengage" && mode !== "disengage") {
-      fitContext = "no_difference"; // 이 고민엔 두 방식 모두 필요
-    } else if (rank.indexOf(m) < rank.indexOf(mode)) {
-      fitContext = "partner_fits_better"; // 이 고민의 성격상 상대 방식이 더 힘을 발휘
-    } else {
-      fitContext = "i_fit_better";
-    }
-    const type = `${axis}-${m}` as TypeCode;
-    return { type, dessert: DESSERT[type].name, axis: AXIS_KR[axis], mode: MODE_KR[m], fitContext };
-  });
+  const m = rank.filter((k) => k !== mode)[0];
+  let fitContext: FitContext;
+  if (group === "G2" && m !== "disengage" && mode !== "disengage") {
+    fitContext = "no_difference"; // 이 고민엔 두 방식 모두 필요
+  } else if (rank.indexOf(m) < rank.indexOf(mode)) {
+    fitContext = "partner_fits_better"; // 이 고민의 성격상 상대 방식이 더 힘을 발휘
+  } else {
+    fitContext = "i_fit_better";
+  }
+  const type = `${axis}-${m}` as TypeCode;
+  return { type, dessert: DESSERT[type].name, axis: AXIS_KR[axis], mode: MODE_KR[m], fitContext };
 }
 
-/** 이웃형: 사슬에서 인접한 영역, 같은 대처방식. 양끝(인생·연애) 1명, 가운데 2명. */
-export function neighbors(axis: AxisKey, mode: ModeKey, f: Record<FactorKey, number>): NeighborType[] {
+/** 이웃형: 사슬에서 인접한 영역 중 다리요인 점수가 가장 낮은(=가장 강하게 이어진) 1명. */
+export function neighbors(axis: AxisKey, mode: ModeKey, f: Record<FactorKey, number>): NeighborType {
   const i = CHAIN.indexOf(axis);
   const adj = [i - 1, i + 1].filter((j) => j >= 0 && j < CHAIN.length).map((j) => CHAIN[j]);
   adj.sort((a, b) => {
@@ -93,25 +94,18 @@ export function neighbors(axis: AxisKey, mode: ModeKey, f: Record<FactorKey, num
     if (Math.abs(fa - fb) > 1e-9) return fa - fb; // 다리요인 점수 낮은 쪽 우선
     return PRIORITY.indexOf(a) - PRIORITY.indexOf(b); // 동점이면 고정 순서
   });
-  return adj.map((d) => {
-    const type = `${d}-${mode}` as TypeCode;
-    const bf = bridgeFactor(axis, d);
-    return {
-      type,
-      dessert: DESSERT[type].name,
-      axis: AXIS_KR[d],
-      mode: MODE_KR[mode],
-      bridgeFactor: FACTOR_KR_LOCAL[bf],
-    };
-  });
+  const d = adj[0];
+  const type = `${d}-${mode}` as TypeCode;
+  const bf = bridgeFactor(axis, d);
+  return { type, dessert: DESSERT[type].name, axis: AXIS_KR[d], mode: MODE_KR[mode], bridgeFactor: FACTOR_KR_LOCAL[bf] };
 }
 
 // neighbors()에서만 쓰는 다리요인 한글명 — data.ts의 FACTOR_KR과 값이 같지만, 순환 import를
 // 피하려고 여기서 직접 import했습니다.
 import { FACTOR_KR as FACTOR_KR_LOCAL } from "../data";
 
-/** 대조형: 사슬에서 가장 먼 2개 영역, 가장 먼 대처방식. */
-export function contrasts(axis: AxisKey, mode: ModeKey): ContrastType[] {
+/** 대조형: 사슬에서 가장 먼 영역·가장 먼 대처방식 중 1명(동점이면 PRIORITY 고정 순서). */
+export function contrasts(axis: AxisKey, mode: ModeKey): ContrastType {
   const i = CHAIN.indexOf(axis);
   const cands = CHAIN.filter((d) => Math.abs(CHAIN.indexOf(d) - i) >= 2);
   cands.sort((a, b) => {
@@ -121,8 +115,7 @@ export function contrasts(axis: AxisKey, mode: ModeKey): ContrastType[] {
     return PRIORITY.indexOf(a) - PRIORITY.indexOf(b);
   });
   const farMode: ModeKey = mode === "disengage" ? "primary" : "disengage";
-  return cands.slice(0, 2).map((d) => {
-    const type = `${d}-${farMode}` as TypeCode;
-    return { type, dessert: DESSERT[type].name, axis: AXIS_KR[d], mode: MODE_KR[farMode] };
-  });
+  const d = cands[0];
+  const type = `${d}-${farMode}` as TypeCode;
+  return { type, dessert: DESSERT[type].name, axis: AXIS_KR[d], mode: MODE_KR[farMode] };
 }

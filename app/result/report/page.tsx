@@ -6,7 +6,6 @@ import RadarChart from "@/components/RadarChart";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
 import { AXIS_KR, DESSERT, GENDER_TITLE } from "@/lib/data";
 import { EUL_REUL } from "@/lib/josa";
-import { buildDomainProfile, EXPERT_NOTICE_TEXT } from "@/lib/reportV3/domainProfile";
 import { createClient } from "@/lib/supabase/client";
 
 const SOWELLA_URL = "https://app.ssolwellnesshouse.com";
@@ -16,18 +15,21 @@ const SOWELLA_MESSAGE =
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
 
+// 2026-09-28: deep-report-prompt-8section-v6.md 기준 제목으로 갱신
+// (6번 "궁합"→"관계성", 8번 "이번주 당장 할거!"→"바로 지금, 작은 변화를 만들어봐요").
 const SECTION_TITLES = [
   "당신의 웰니스 프로파일",
   "주목할 만한 부분은",
   "", // 3번은 영역에 따라 제목이 바뀜(아래 sectionTitle3 참고)
   "더 자세히 들여다보면",
   "", // 5번도 영역 이름이 들어감(아래 sectionTitle5 참고)
-  "다른 유형과의 궁합",
+  "다른 유형과의 관계성",
   "앞으로 나아갈 방향",
-  "이번주 당장 할거!",
+  "바로 지금, 작은 변화를 만들어봐요",
 ];
 
 interface AssembledV3 {
+  section1: string[];
   section2: string[];
   section3: string[];
   section4: string[];
@@ -49,8 +51,8 @@ function useAnimatedDots() {
   return ".".repeat(n);
 }
 
-// v3 인계서 — 심층 리포트 8섹션. 1번(웰니스 프로파일)은 결정론적 조립이라 결제 없이 무료로
-// 즉시 보여주고, 2~8번은 결제 후 OpenAI가 생성합니다(대기 필요 — "generating" 상태로 폴링).
+// v6 프롬프트 — 심층 리포트 8섹션 전부(1~8번)를 결제 후 OpenAI가 생성합니다(더 이상 무료
+// 미리보기 없음 — 오각형 그래프만 /result에서 이미 무료로 보여주고 있어 별도 예고편은 유지).
 export default function ReportPage() {
   const router = useRouter();
   const { result, savedResultId, setSavedResultId, userName, userGender, setPendingAfterSignup } = useQuiz();
@@ -107,8 +109,6 @@ export default function ReportPage() {
   const { typeCode, confirmedAxis, axisScores } = result;
   const dessert = DESSERT[typeCode];
   const axisKR = AXIS_KR[confirmedAxis];
-
-  const tapLocked = () => setToast("🔒 이 항목은 결제 후 열려요. 아래에서 3,500원 결제하고 전체를 확인해보세요.");
 
   type EnsureResult = { ok: true; id: string } | { ok: false; reason: "not_logged_in" | "save_failed" };
   const ensureSavedResult = async (): Promise<EnsureResult> => {
@@ -280,26 +280,9 @@ export default function ReportPage() {
     </button>
   );
 
-  const profile = buildDomainProfile(typeCode, confirmedAxis, axisScores);
   const sectionTitle3 = `${axisKR}${EUL_REUL(axisKR)} 다루는 나의 방식`;
   const sectionTitle4 = "더 자세히 들여다보면";
   const sectionTitle5 = `${axisKR}${EUL_REUL(axisKR)} 고민하는 나의 모습`;
-
-  // 1번(웰니스 프로파일) — 무료. 결제 여부와 무관하게 항상 전부 펼쳐진 상태로 보여줍니다.
-  const profileSection = (
-    <>
-      <RadarChart scores={axisScores} />
-      <p className="type-blurb" style={{ fontWeight: 700 }}>{profile.scoreLine}</p>
-      <p className="type-blurb">{profile.introLine}</p>
-      {profile.blocks.map((b) => (
-        <div key={b.label} style={{ marginBottom: 14 }}>
-          <p className="r-title" style={{ marginBottom: 4 }}>{b.label}</p>
-          <p className="type-blurb" style={{ marginBottom: 0 }}>{b.text}</p>
-        </div>
-      ))}
-      {profile.expertNotice && <p className="type-blurb">{EXPERT_NOTICE_TEXT}</p>}
-    </>
-  );
 
   if (view === "ready" && assembled) {
     return (
@@ -308,10 +291,14 @@ export default function ReportPage() {
         <p className="kicker kicker-sm">심층 리포트</p>
         <h1 className="serif">{dessert.name}의 웰니스 이야기</h1>
 
-        <p className="traits-title">1. {SECTION_TITLES[0]}</p>
-        {profileSection}
+        <RadarChart scores={axisScores} />
 
-        <p className="traits-title" style={{ marginTop: 20 }}>2. {SECTION_TITLES[1]}</p>
+        <p className="traits-title" style={{ marginTop: 20 }}>1. {SECTION_TITLES[0]}</p>
+        {assembled.section1.map((p, i) => (
+          <p key={i} className="type-blurb">{p}</p>
+        ))}
+
+        <p className="traits-title">2. {SECTION_TITLES[1]}</p>
         {assembled.section2.map((p, i) => (
           <p key={i} className="type-blurb">{p}</p>
         ))}
@@ -403,8 +390,7 @@ export default function ReportPage() {
         {backBtn}
         <p className="kicker kicker-sm">심층 리포트</p>
         <h1 className="serif">{dessert.name}의 웰니스 이야기</h1>
-        <p className="traits-title">1. {SECTION_TITLES[0]}</p>
-        {profileSection}
+        <RadarChart scores={axisScores} />
         <div className="cta">
           <p className="cta-title">
             {honorific}의 심층 보고서를 작성하고 있어요{dots}
@@ -434,32 +420,26 @@ export default function ReportPage() {
     );
   }
 
-  // locked (기본 상태) — 1번(웰니스 프로파일)은 무료로 펼쳐볼 수 있고, 2~8번은 결제 후 열립니다.
+  // locked (기본 상태) — v6부터는 무료 미리보기가 없습니다. 오각형 그래프는 /result에서
+  // 이미 무료로 보여주므로, 여기서는 8개 섹션 제목만 예고편으로 보여주고 전부 결제 후 열립니다.
   return (
     <div className="card">
       {backBtn}
       <p className="kicker kicker-sm">심층 리포트</p>
       <h1 className="serif">{dessert.name}의 웰니스 이야기</h1>
       <p className="muted" style={{ marginBottom: 20 }}>
-        1번 항목은 무료로 전체 확인할 수 있어요. 나머지는 결제 후에 열려요.
+        결제하면 8개 섹션 전체가 열려요.
       </p>
 
-      <div className="report-section report-section-preview">
-        <div className="report-section-head" style={{ cursor: "default" }}>
-          <span className="r-num">1</span>
-          <div>
-            <p className="r-title">{SECTION_TITLES[0]}</p>
-            <p className="r-teaser">무료로 전체 볼 수 있어요</p>
-          </div>
-        </div>
-        <div className="report-section-body">{profileSection}</div>
-      </div>
-
-      {[SECTION_TITLES[1], sectionTitle3, sectionTitle4, sectionTitle5, SECTION_TITLES[5], SECTION_TITLES[6], SECTION_TITLES[7]].map(
+      {[SECTION_TITLES[0], SECTION_TITLES[1], sectionTitle3, sectionTitle4, sectionTitle5, SECTION_TITLES[5], SECTION_TITLES[6], SECTION_TITLES[7]].map(
         (title, i) => (
-          <div key={title} className="report-section" onClick={tapLocked}>
+          <div
+            key={title}
+            className="report-section"
+            onClick={() => setToast("🔒 이 항목은 결제 후 열려요. 아래에서 3,500원 결제하고 전체를 확인해보세요.")}
+          >
             <div className="report-section-head">
-              <span className="r-num">{i + 2}</span>
+              <span className="r-num">{i + 1}</span>
               <div>
                 <p className="r-title">{title}</p>
               </div>

@@ -33,8 +33,8 @@ export function buildReportV3Input(params: {
     leadGroup: grp,
     otherFactors: others,
     itemResponses: { ...part1Answers, ...part2Answers },
-    companions: companions(axis, mode, grp),
-    neighbors: neighbors(axis, mode, factorScores),
-    contrasts: contrasts(axis, mode),
+    companion: companions(axis, mode, grp),
+    neighbor: neighbors(axis, mode, factorScores),
+    contrast: contrasts(axis, mode),
   };
 }

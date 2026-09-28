@@ -11,12 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 export const maxDuration = 300;
 const STALE_GENERATION_MS = 90_000; // 이보다 오래 'generating' 상태면 이전 시도가 죽은 것으로 보고 재시도
 
-// 2026-09-28: v3 인계서(system_prompt_v3.md·base-knowledge-15types_v3·server_logic_v3.py)
-// 반영. 2~8번 섹션은 매번 OpenAI가 생성합니다(대표 시나리오 템플릿을 그대로 서빙하던 이전
-// 방식은 폐기 — base_knowledge가 이제 완성된 리포트가 아니라 짧은 원재료라 AI 없이는 리포트가
-// 나올 수 없습니다). 1번(웰니스 프로파일)은 여전히 결정론적 조립(lib/reportV3/domainProfile.ts)
-// 이라 무료로 즉시 제공됩니다. 같은 주문(order_id)에는 재호출하지 않고 ssol_reports에 저장된
-// 값을 재사용합니다.
+// 2026-09-28: deep-report-prompt-8section-v6.md 반영. 1~8번 섹션 전부를 매번 OpenAI가
+// 생성합니다(섹션 1도 이제 AI가 씀 — 더 이상 결제 전 무료 미리보기 없음). 같은 주문
+// (order_id)에는 재호출하지 않고 ssol_reports에 저장된 값을 재사용합니다.
 
 async function getAuthedUser() {
   const supabase = createClient();
@@ -96,6 +93,7 @@ async function startOrGetGeneration(
   }
 
   const assembled = {
+    section1: sections.section1,
     section2: sections.section2,
     section3: sections.section3,
     section4: sections.section4,
