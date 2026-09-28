@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import { AXIS_ORDER, DESSERT, type AxisKey, type ModeKey, type TypeCode } from "@/lib/data";
-import { generateWithOpenAI } from "@/lib/openaiReport";
-import { splitIntoParagraphs } from "@/lib/paragraphSplit";
-import { buildSection6 } from "@/lib/reportAssembly";
-import { REPORT_TEMPLATES } from "@/lib/reportTemplates";
+import { type AxisKey, type ModeKey, type TypeCode } from "@/lib/data";
+import { buildReportV3Input } from "@/lib/reportV3/buildInput";
+import { generateReportV3 } from "@/lib/reportV3/generate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-// 2026-09-25: v3deep-report-prompt-and-example.md + 15types-full-reports.md 반영.
-// 2~7번 섹션은 이제 "15유형 대표 시나리오 템플릿"을 실제 사용자 점수·응답에 맞게 OpenAI가
-// 조정하는 방식입니다. 1번(오각형 상세)은 여전히 결정론적 조립(lib/reportAssembly.ts)이라
-// 무료로 즉시 제공됩니다. 같은 주문(order_id)에는 재호출하지 않고(ssol_reports에 저장된 값
-// 재사용), 실제 점수가 템플릿과 충분히 가까우면 API를 아예 호출하지 않고 템플릿을 문단만
-// 나눠서 그대로 씁니다(비용 절감).
+// 2026-09-28: 이제 매 요청마다 OpenAI를 호출해서 응답이 예전보다 오래 걸릴 수 있어(재시도 포함
+// 최대 20~30초 안팎), 기본 제한(플랫폼별 10초)보다 여유를 둡니다.
+export const maxDuration = 60;
+
+// 2026-09-28: v3 인계서(system_prompt_v3.md·base-knowledge-15types_v3·server_logic_v3.py)
+// 반영. 2~8번 섹션은 매번 OpenAI가 생성합니다(대표 시나리오 템플릿을 그대로 서빙하던 이전
+// 방식은 폐기 — base_knowledge가 이제 완성된 리포트가 아니라 짧은 원재료라 AI 없이는 리포트가
+// 나올 수 없습니다). 1번(웰니스 프로파일)은 여전히 결정론적 조립(lib/reportV3/domainProfile.ts)
+// 이라 무료로 즉시 제공됩니다. 같은 주문(order_id)에는 재호출하지 않고 ssol_reports에 저장된
+// 값을 재사용합니다.
 
 async function getAuthedUser() {
   const supabase = createClient();
@@ -20,11 +22,6 @@ async function getAuthedUser() {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
-}
-
-// 실제 점수가 템플릿(대표 시나리오)과 충분히 가까우면 API 호출 없이 템플릿을 그대로 씁니다.
-function isCloseToTemplate(axisScores: Record<AxisKey, number>, template: { axisScores: Record<AxisKey, number> }): boolean {
-  return AXIS_ORDER.every((a) => Math.abs(axisScores[a] - template.axisScores[a]) < 0.15);
 }
 
 async function assembleAndStore(admin: ReturnType<typeof createAdminClient>, resultId: string, orderId: string, userId: string) {
@@ -37,60 +34,34 @@ async function assembleAndStore(admin: ReturnType<typeof createAdminClient>, res
 
   const typeCode = result.type_key as TypeCode;
   const [confirmedAxis, confirmedMode] = typeCode.split("-") as [AxisKey, ModeKey];
-  const template = REPORT_TEMPLATES[typeCode];
-  const dessert = DESSERT[typeCode];
 
-  // 1번(오각형 상세)은 무료로 이미 따로 제공되므로 여기서는 2~7번만 다룹니다.
-  const flags = buildSection6(confirmedAxis, result.sub_scores, result.part2_answers, result.factor_scores);
+  const input = buildReportV3Input({
+    axis: confirmedAxis,
+    mode: confirmedMode,
+    axisScores: result.axis_scores,
+    factorScores: result.factor_scores,
+    modeScores: result.mode_scores,
+    copingSubScores: result.sub_scores,
+    part1Answers: result.part1_answers,
+    part2Answers: result.part2_answers,
+  });
 
-  let sections: { section2: string[]; section3: string[]; section4: string[]; section5: string[]; section6: string[]; section7: string[] };
-
-  // 2026-09-26: 응답 인용(개인화)을 위해 템플릿과 가까워도 AI를 호출합니다. 키가 없거나 실패하면 템플릿 그대로.
-  if (!process.env.OPENAI_API_KEY && isCloseToTemplate(result.axis_scores, template)) {
-    sections = {
-      section2: splitIntoParagraphs(template.section2, 4),
-      section3: splitIntoParagraphs(template.section3, 4),
-      section4: splitIntoParagraphs(template.section4, 4),
-      section5: splitIntoParagraphs(template.section5, 4),
-      section6: flags.length ? splitIntoParagraphs(flags, 4) : [],
-      section7: splitIntoParagraphs(template.section7, 4),
-    };
-  } else {
-    try {
-      const generated = await generateWithOpenAI({
-        typeCode,
-        dessertName: dessert.name,
-        confirmedAxis,
-        confirmedMode,
-        axisScores: result.axis_scores,
-        factorScores: result.factor_scores,
-        modeScores: result.mode_scores,
-        part1Answers: result.part1_answers,
-        part2Answers: result.part2_answers,
-        template,
-      });
-      // AI가 특수 플래그를 잘못 지어냈을 수 있으니, 실제 조건 판정 결과로 덮어씁니다.
-      sections = { ...generated, section6: flags.length ? splitIntoParagraphs(flags, 4) : [] };
-    } catch (err) {
-      console.error("OpenAI 리포트 생성 실패 — 템플릿으로 대체:", err instanceof Error ? err.message : err);
-      sections = {
-        section2: splitIntoParagraphs(template.section2, 4),
-        section3: splitIntoParagraphs(template.section3, 4),
-        section4: splitIntoParagraphs(template.section4, 4),
-        section5: splitIntoParagraphs(template.section5, 4),
-        section6: flags.length ? splitIntoParagraphs(flags, 4) : [],
-        section7: splitIntoParagraphs(template.section7, 4),
-      };
-    }
+  let sections;
+  try {
+    sections = await generateReportV3(input);
+  } catch (err) {
+    console.error("v3 리포트 생성 실패:", err instanceof Error ? err.message : err);
+    return null;
   }
 
   const assembled = {
     section2: sections.section2,
-    section3: sections.section3.length ? sections.section3 : null,
+    section3: sections.section3,
     section4: sections.section4,
-    section5: sections.section5.length ? sections.section5 : null,
+    section5: sections.section5,
     section6: sections.section6,
-    section7: sections.section7.length ? sections.section7 : null,
+    section7: sections.section7,
+    section8: sections.section8,
   };
 
   const { data: saved, error: saveError } = await admin

@@ -22,12 +22,11 @@ export function mean(xs: number[]): number {
 export function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
-// 화면 표시용 포맷: 소수 둘째 자리까지 반올림하되, 끝자리가 0이면 하나만 제거해
-// 최소 소수 한 자리는 항상 남긴다 (2.00→2.0, 2.50→2.5, 2.33→2.33).
+// 2026-09-28: v3 인계서 "점수 표기: 소수 첫째자리 반올림 + '점'" — 예전엔 3.75, 2.94 같은
+// 소수 둘째 자리까지도 섞여 나왔는데, 전부 소수 첫째 자리(3.8, 2.9)로 통일합니다.
+// (이 함수는 "점"을 붙이지 않고 숫자만 반환 — 호출부에서 그동안 해온 대로 "점"을 붙입니다.)
 export function fmtScore(x: number): string {
-  let s = x.toFixed(2);
-  if (s.endsWith("0")) s = s.slice(0, -1);
-  return s;
+  return x.toFixed(1);
 }
 
 export type Part1Answers = Record<string, number>; // {P01: 1..5, ...}
