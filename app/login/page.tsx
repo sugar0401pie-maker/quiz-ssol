@@ -74,6 +74,27 @@ export default function LoginPage() {
     return "loaded";
   };
 
+  // 2026-09-28: "비밀번호 찾기가 없다"는 지적 — Supabase의 비밀번호 재설정 이메일을 보내고,
+  // 그 메일의 링크는 /reset-password로 연결해서 거기서 새 비밀번호를 정하게 합니다.
+  const sendPasswordReset = async () => {
+    const email = contact.trim();
+    if (!email || !email.includes("@")) {
+      setToast("이메일 주소를 먼저 입력해주세요.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await createClient().auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) {
+      console.error("비밀번호 재설정 메일 발송 실패:", error.message);
+      setToast("메일을 보내지 못했어요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+    setToast("비밀번호 재설정 메일을 보냈어요. 메일함을 확인해주세요.");
+  };
+
   const login = async () => {
     if (!contact.trim() || !password.trim()) {
       setToast("이메일과 비밀번호를 입력해주세요.");
@@ -149,6 +170,9 @@ export default function LoginPage() {
 
       <button type="button" className="btn-lg" style={{ marginTop: 16 }} onClick={login} disabled={busy}>
         로그인
+      </button>
+      <button type="button" className="text-link" style={{ display: "block", margin: "10px auto 0" }} onClick={sendPasswordReset} disabled={busy}>
+        비밀번호를 잊으셨나요?
       </button>
       {result && (
         <button
