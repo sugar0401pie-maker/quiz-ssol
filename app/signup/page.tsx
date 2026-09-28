@@ -31,9 +31,9 @@ function OAuthErrorToast({ onMessage }: { onMessage: (msg: string) => void }) {
   return null;
 }
 
-// 2026-09-25: 카카오·네이버 로그인이 아직 준비되지 않아 잠시 숨겨둡니다.
-// 준비되면 이 값을 true로 바꾸면 바로 버튼이 다시 보입니다(다른 코드 변경 불필요).
-const SOCIAL_LOGIN_ENABLED = false;
+// 2026-09-25: 카카오·네이버 로그인이 아직 준비되지 않아 잠시 숨겨뒀던 플래그.
+// 2026-09-28: 카카오/네이버 콘솔 설정 완료 확인 후 다시 켬.
+const SOCIAL_LOGIN_ENABLED = true;
 
 // 6. 계정 만들기 선택
 export default function SignupPage() {
