@@ -1,6 +1,9 @@
-// 2026-09-28: DB에 저장된 채점 결과로부터 ReportV3Input(프롬프트용 변수 묶음)을 만듭니다.
-// server_logic_v3.py의 build_report_input()에 해당합니다.
+// 2026-09-29: DB에 저장된 채점 결과로부터 ReportV3Input(프롬프트용 변수 묶음)을 만듭니다.
+// build_report_input.py(2026-09-29 수정본)에 해당합니다. 궁합 상대는 카테고리당 1명이 아니라
+// 동행형 2명·이웃형 1~2명·대조형 2명을 전부 담고(companions.ts 참고), theory는 섹션 1 하단에
+// 서버가 그대로 노출할 이론 문구입니다(AI에게는 "인용하지 말라"는 지침과 함께 참고용으로만 전달).
 import { AXES, DESSERT, type AxisKey, type CopingSubKey, type FactorKey, type ModeKey, type TypeCode } from "../data";
+import { BASE_KNOWLEDGE } from "./baseKnowledge";
 import { companions, contrasts, leadFactors, leadGroup, neighbors } from "./companions";
 import type { ReportV3Input } from "./prompt";
 
@@ -33,8 +36,9 @@ export function buildReportV3Input(params: {
     leadGroup: grp,
     otherFactors: others,
     itemResponses: { ...part1Answers, ...part2Answers },
-    companion: companions(axis, mode, grp),
-    neighbor: neighbors(axis, mode, factorScores),
-    contrast: contrasts(axis, mode),
+    companions: companions(axis, mode, grp),
+    neighbors: neighbors(axis, mode, factorScores),
+    contrasts: contrasts(axis, mode),
+    theory: BASE_KNOWLEDGE[typeCode].relatedTheory,
   };
 }
