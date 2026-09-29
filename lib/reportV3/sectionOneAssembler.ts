@@ -87,10 +87,10 @@ export function assembleSection1(input: SectionOneInput): string[] {
   const { typeCode, dessertName, axis: confirmedAxis, axisScores, factorScores } = input;
   const paragraphs: string[] = [];
 
-  paragraphs.push(IDENTITY_BANK[typeCode] ?? `당신은 ${dessertName} 유형이에요.`);
   paragraphs.push(
     "이 자가진단은 심리상담 전문가가 직접 고안한 자기평가도구예요. 아래 다섯 영역의 해석도 전문가가 정리한 심리학 이론에 바탕을 두고 있고, 어떤 이론인지는 이 섹션 맨 아래에서 확인하실 수 있어요."
   );
+  paragraphs.push(IDENTITY_BANK[typeCode] ?? `당신은 ${dessertName} 유형이에요.`);
 
   // 확정 영역을 뺀 나머지 4개 영역의 순위(점수 내림차순, 동점이면 고정 순서로 결정론 유지).
   const rankOrder = [...AXIS_ORDER].sort((a, b) => axisScores[b] - axisScores[a] || AXIS_ORDER.indexOf(a) - AXIS_ORDER.indexOf(b));

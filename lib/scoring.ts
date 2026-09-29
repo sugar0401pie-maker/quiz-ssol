@@ -22,11 +22,11 @@ export function mean(xs: number[]): number {
 export function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
-// 2026-09-28: v6 프롬프트 반영 — "점수 표기는 X.XX점, 소수 둘째 자리까지"로 다시 변경(이전
-// X.X 한 자리 표기에서 전환). 예: 2.9 → 2.90, 3.33은 그대로 3.33.
-// (이 함수는 "점"을 붙이지 않고 숫자만 반환 — 호출부에서 그동안 해온 대로 "점"을 붙입니다.)
+// 2026-09-29: 규칙 갱신 — 기본은 소수 둘째 자리까지 쓰되, 뒤에 붙는 불필요한 0은 자릅니다.
+// 예: 5.00 → "5", 5.50 → "5.5", 3.33은 그대로 "3.33". "점"을 붙이지 않고 숫자만 반환 —
+// 호출부에서 그동안 해온 대로 "점"을 붙입니다.
 export function fmtScore(x: number): string {
-  return x.toFixed(2);
+  return x.toFixed(2).replace(/\.?0+$/, "");
 }
 
 export type Part1Answers = Record<string, number>; // {P01: 1..5, ...}

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import RadarChart from "@/components/RadarChart";
+import { ReportParagraph } from "@/components/ReportParagraph";
 import { useQuiz } from "@/lib/QuizContext";
 import { DESSERT } from "@/lib/data";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
@@ -126,37 +127,37 @@ export default function ReportViewPage() {
 
       <p className="traits-title" style={{ marginTop: 20 }}>1. {SECTION_TITLES[0]}</p>
       {assembled.section1.map((p, i) => (
-        <p key={i} className="type-blurb">{p}</p>
+        <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
       <p className="traits-title">2. {SECTION_TITLES[1]}</p>
       {assembled.section2.map((p, i) => (
-        <p key={i} className="type-blurb">{p}</p>
+        <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
       <p className="traits-title">3. {sectionTitle3}</p>
       {assembled.section3.map((p, i) => (
-        <p key={i} className="type-blurb">{p}</p>
+        <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
       <p className="traits-title">4. {sectionTitle4}</p>
       {assembled.section4.map((p, i) => (
-        <p key={i} className="type-blurb">{p}</p>
+        <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
       <p className="traits-title">5. {sectionTitle5}</p>
       {assembled.section5.map((p, i) => (
-        <p key={i} className="type-blurb">{p}</p>
+        <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
       <p className="traits-title">6. {SECTION_TITLES[5]}</p>
       {assembled.section6.map((p, i) => (
-        <p key={i} className="type-blurb">{p}</p>
+        <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
       <p className="traits-title">7. {SECTION_TITLES[6]}</p>
       {assembled.section7.map((p, i) => (
-        <p key={i} className="type-blurb">{p}</p>
+        <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
       <p className="traits-title">8. {SECTION_TITLES[7]}</p>
@@ -166,7 +167,7 @@ export default function ReportViewPage() {
             <p>{p}</p>
           </div>
         ) : (
-          <p key={i} className="type-blurb">{p}</p>
+          <ReportParagraph key={i} text={p} className="type-blurb" />
         )
       )}
 

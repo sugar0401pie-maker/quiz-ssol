@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
+import { ReportParagraph } from "@/components/ReportParagraph";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
 import { DESSERT } from "@/lib/data";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
@@ -249,7 +250,7 @@ export default function ReportPage() {
           <p className="traits-title" style={{ marginTop: 20 }}>1. {SECTION_TITLES[0]}</p>
           {section1 ? (
             section1.map((p, i) => (
-              <p key={i} className="type-blurb">{p}</p>
+              <ReportParagraph key={i} text={p} className="type-blurb" />
             ))
           ) : (
             <p className="muted pulse-text">무료로 먼저 보여드릴 준비를 하고 있어요...</p>

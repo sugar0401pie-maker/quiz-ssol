@@ -5,7 +5,8 @@
 // 이제 AI는 본문에서 학자 이름을 대지 않고, {theory} 값은 섹션 1 하단에 서버가 그대로
 // 노출합니다. 궁합 상대도 동행형·이웃형·대조형 각 1명(총 3명)이 아니라 동행형 2명·이웃형
 // 1~2명·대조형 2명(총 5~6명)으로 되돌아갔습니다(companions.ts 참고). 점수 표기는 X.X가 아니라
-// 기존처럼 X.XX(소수 둘째 자리)를 그대로 유지합니다 — 사장님 확인.
+// 기존처럼 소수 둘째 자리까지를 기본으로 하되, 2026-09-29부터 뒤에 붙는 불필요한 0은
+// 자릅니다(5.00→"5", 5.50→"5.5", 3.33은 그대로) — lib/scoring.ts의 fmtScore() 참고.
 //
 // 중요: 시스템 프롬프트는 사용자마다 절대 달라지지 않는 "완전히 고정된" 텍스트여야 프롬프트
 // 캐시가 걸립니다(run_sol_test.py 주석 참고). {axis}, {mode}, {dessert_name} 같은 자리표시자는
@@ -149,7 +150,9 @@ export function buildSystemPrompt(): string {
    보이지 않게 될 수 있는 방식입니다. 유보형을 탓하거나 부끄럽게 만들지 않되,
    "그대로 괜찮다"로만 끝내지도 않습니다. 개선할 수 있는 방향은 최소 3가지
    이상, 구체적으로 제안합니다(특히 7번 섹션에서 — 아래 7번 섹션 설명 참고).
-8. 점수 표기: 입력으로 받은 "X.XX점" 형식(소수 둘째 자리까지)을 그대로 씁니다.
+8. 점수 표기: 입력으로 받은 점수는 이미 정해진 표기(기본 소수 둘째 자리까지,
+   단 5.00은 "5", 5.50은 "5.5"처럼 뒤에 붙는 불필요한 0은 이미 잘려 있습니다)
+   그대로 옮겨 적습니다. 자릿수를 임의로 늘리거나 줄이지 않습니다.
    "/5.0" 같은 표기는 쓰지 않습니다. 점수와 이름 뒤 조사(은/는, 이/가, 을/를,
    이에요/예요)는 받침에 맞게 씁니다.
 9. 말투 (필수, 기계적으로 지킬 것): "당신"에게 말하는 2인칭입니다. 문장을 쓸 때마다
@@ -186,15 +189,16 @@ export function buildSystemPrompt(): string {
       주의하되(규칙 5), 이 사람의 주도요인과 실제 응답에 맞게 장면을 고릅니다.
     문장을 통째로 복사할 필요는 없지만, 최대한 JunSeok이 쓴 단어와 표현을
     그대로 활용해서 씁니다.
-11. <notable_answers>에는 사용자가 실제로 강하게(1점·5점 등) 답한 문항이 있습니다.
-    리포트 전체(2~8번)에서 4~5개만 골라, 해당 섹션의 맥락에 자연스럽게 녹여
-    인용하세요. 인용할 때 동사는 반드시 "답하셨"을 그대로 씁니다 — 말투(9번
-    규칙)에 따라 "'…'라는 문항에 '매우 그렇다'고 답하셨어요"(해요체) 또는
-    "'…'라는 문항에 '매우 그렇다'고 답하셨습니다"(입니다체) 둘 중 하나로만
-    쓰고, "답했어요/답했습니다"처럼 "-시-"를 빼지 않습니다(파싱에 쓰이는
-    고정 표현입니다). 한 섹션에 몰아 쓰지 말고 여러 섹션에 나눠 쓰며, 문항
-    번호는 쓰지 않습니다. 인용은 응답 사실만 짚고, 그 이유나 사연을 단정하지
-    마세요. 역채점 문항은 방향을 헷갈리지 않게 주의합니다.
+11. <notable_answers>에는 사용자가 실제로 강하게(1점·5점 등) 답한 문항이 있고, 각 줄
+    끝에 [N번 문항]처럼 33문항 중 연번이 표시돼 있습니다. 리포트 전체(2~8번)에서
+    4~5개만 골라, 해당 섹션의 맥락에 자연스럽게 녹여 인용하세요. 인용할 때는
+    반드시 그 연번을 문장 안에 "N번 문항"처럼 그대로 포함합니다(예: "22번
+    문항인 '…'에 '매우 그렇다'고 답하셨어요"). 동사는 반드시 "답하셨"을 그대로
+    씁니다 — 말투(9번 규칙)에 따라 "...답하셨어요"(해요체) 또는
+    "...답하셨습니다"(입니다체) 둘 중 하나로만 쓰고, "답했어요/답했습니다"처럼
+    "-시-"를 빼지 않습니다(파싱에 쓰이는 고정 표현입니다). 한 섹션에 몰아
+    쓰지 말고 여러 섹션에 나눠 씁니다. 인용은 응답 사실만 짚고, 그 이유나
+    사연을 단정하지 마세요. 역채점 문항은 방향을 헷갈리지 않게 주의합니다.
 12. 점수 상태 표현 통일: 영역 점수는 4.00점 이상이면 "든든하게 채워져 있는 편",
     3.00점 이상 4.00점 미만이면 "무난히 유지되지만 살짝 신경 써주면 더 든든해질 수
     있는 편", 3.00점 미만이면 "에너지가 상대적으로 덜 채워진 편"이라는 뜻으로
@@ -213,11 +217,18 @@ export function buildSystemPrompt(): string {
 15. 강조 표기 (필수, 예외 없음): 리포트 어디에도 **(별표 두 개)를 쓰지 않습니다.
     화면이 마크다운을 굵게 렌더링하지 않아서, ** 표시가 그대로 화면에 별표
     두 개로 노출됩니다. 소제목처럼 무언가를 나열·구분해서 설명할 때는 그
-    자리에 말머리 기호(•)를 붙인 줄로 표시하고("• 마들렌(자기 × 평온형)"처럼),
-    그 밖에 단순히 한 단어·구절을 강조하고 싶을 때는 특수 기호 없이 그냥
-    평문으로 씁니다. <style_example>의 예시 리포트에 **가 보이더라도 그건
-    예전 표기법이니 따라 하지 말고, 이 규칙(말머리 기호 또는 평문)을
-    따르세요.
+    자리에 말머리 기호(•)를 붙인 줄로 표시하고("• 마들렌(자기 × 평온형(2차
+    통제))"처럼), 그 밖에 단순히 한 단어·구절을 강조하고 싶을 때는 특수
+    기호 없이 그냥 평문으로 씁니다. <style_example>의 예시 리포트에 **가
+    보이더라도 그건 예전 표기법이니 따라 하지 말고, 이 규칙(말머리 기호
+    또는 평문)을 따르세요.
+16. 대처방식 이름 표기 (필수, 예외 없음): 용기형·평온형·유보형을 언급할
+    때마다 반드시 원래 심리학 용어를 괄호로 함께 씁니다 — "용기형(1차
+    통제)", "평온형(2차 통제)", "유보형(이탈)"처럼요. {mode} 자리표시자에도
+    이미 이 괄호가 포함된 값이 들어오니 그대로 쓰고, 6번 섹션의 동행형·
+    이웃형·대조형 유형명에 붙는 대처방식도 마찬가지입니다. 한 문장 안에서
+    같은 대처방식을 두 번 이상 언급할 때도 매번 괄호를 반복해서 씁니다
+    (한 번만 쓰고 이후 생략하지 않습니다).
 
 # 배경 지식
 
@@ -527,8 +538,9 @@ base_knowledge의 도메인 고유 장면(진로="업무 스타일", 연애="연
 - 2~8번 7개 섹션이 모두 있고, 헤더가 "### N. 제목" 형식 그대로인가
 - <style_example>의 점수·궁합 상대·구체적 장면을 그대로 베끼지 않고, 이 사람의
   실제 데이터로 새로 썼는가
-- 문항 응답을 인용할 때마다 동사가 "답하셨어요/답하셨습니다"(둘 중 하나)이고,
-  "답했어요/답했습니다"처럼 "-시-"를 뺀 표현을 쓰지 않았는가
+- 문항 응답을 인용할 때마다 "N번 문항"처럼 연번을 실제로 포함했는가, 동사가
+  "답하셨어요/답하셨습니다"(둘 중 하나)이고 "답했어요/답했습니다"처럼 "-시-"를
+  뺀 표현을 쓰지 않았는가
 - 해석 문장마다 근거(점수·응답)·기제(왜)·장면(하루 속 모습)이 모두 있는가 —
   결론 한 줄로 끝난 해석이 없는가
 - 대처 방식·하위요인·영역 점수의 차이를 설명할 때마다 실제 일상에서 어떻게
@@ -542,7 +554,7 @@ base_knowledge의 도메인 고유 장면(진로="업무 스타일", 연애="연
   하단에 서버가 이미 그대로 보여줬습니다 — 규칙 1)
 - base_knowledge 성격적 특징 끝의 "다만 ~" 문장이 4번 또는 7번 어딘가에 들어갔는가
 - 섹션 2, 4~5, 7에서 확정 영역 밖 장면을 쓰지 않았는가
-- 점수가 모두 "X.XX점" 형식(소수 둘째 자리까지)인가
+- 점수를 입력에 주어진 표기 그대로 옮겨 적었는가(자릿수를 임의로 바꾸지 않았는가)
 - 관계성에 입력으로 받은 유형만 썼는가 — 또한 동행형 2명·이웃형(1~2명, 입력된
   수 그대로)·대조형 2명 전원이 등장하는가(카테고리마다 첫 번째만 쓰고 빠뜨리지
   않았는가)
@@ -559,6 +571,8 @@ base_knowledge의 도메인 고유 장면(진로="업무 스타일", 연애="연
 - 어디에도 **(별표 두 개)를 쓰지 않았는가 — 소제목은 전부 말머리 기호(•)로만
   표시했는가
 - 4~5개의 응답 인용이 여러 섹션에 자연스럽게 녹아 있는가
+- 용기형·평온형·유보형을 쓸 때마다 빠짐없이 괄호로 원래 용어를 붙였는가(용기형(1차
+  통제), 평온형(2차 통제), 유보형(이탈))
 - 분량이 공백 제외 4,300~6,300자인가(섹션 1은 당신이 쓰지 않으므로 그 분량은
   포함하지 않습니다)
 
@@ -567,27 +581,47 @@ base_knowledge의 도메인 고유 장면(진로="업무 스타일", 연애="연
 
 const LIKERT_KR: Record<number, string> = { 1: "전혀 아니다", 2: "아니다", 3: "보통이다", 4: "그렇다", 5: "매우 그렇다" };
 
+// 2026-09-29: "문항별 번호가 안 뜨는 경우가 있다"는 피드백 — 예전 규칙(11번)은 문항 번호를
+// 아예 안 쓰게 했는데, 이제 반대로 33문항 중 몇 번째인지(연번)를 인용마다 꼭 밝히도록
+// 바꿨습니다. 순서는 33문항 화면에 보여준 순서(Part1 다음 Part2)와 같습니다.
+const ITEM_ORDER = [...Object.keys(PART1_ITEMS), ...Object.keys(PART2_ITEMS)];
+function itemNumber(id: string): number {
+  return ITEM_ORDER.indexOf(id) + 1;
+}
+
 function notableAnswers(itemResponses: Record<string, number>, limit = 8): string[] {
   const rows = Object.entries(itemResponses)
     .map(([id, v]) => ({ id, v, t: PART1_ITEMS[id]?.t ?? PART2_ITEMS[id]?.t }))
     .filter((r) => r.t && Math.abs(r.v - 3) >= 1);
   rows.sort((a, b) => Math.abs(b.v - 3) - Math.abs(a.v - 3) || a.id.localeCompare(b.id));
-  return rows.slice(0, limit).map((r) => `- "${r.t}" → ${r.v}점 (${LIKERT_KR[r.v]})`);
+  return rows.slice(0, limit).map((r) => `- "${r.t}" → ${r.v}점 (${LIKERT_KR[r.v]}) [${itemNumber(r.id)}번 문항]`);
+}
+
+// 2026-09-29: "용기형/평온형/유보형을 원래 단어(전문 용어)도 괄호로 같이 보여달라"는 요청.
+// 대처방식 이름이 사람에게 붙어서 쓰이는 자리(플레이스홀더 {mode}, 점수 줄, 궁합 상대 라벨)에서만
+// 적용합니다 — "# 배경 지식"의 일반 설명(용어 자체를 정의하는 자리)까지는 바꾸지 않았습니다.
+const MODE_ANNOTATION: Record<string, string> = {
+  용기형: "용기형(1차 통제)",
+  평온형: "평온형(2차 통제)",
+  유보형: "유보형(이탈)",
+};
+function annotateMode(modeKR: string): string {
+  return MODE_ANNOTATION[modeKR] ?? modeKR;
 }
 
 function companionLine(c: CompanionType): string {
-  return `${c.dessert}(${c.axis} × ${c.mode}), fit_context=${c.fitContext}`;
+  return `${c.dessert}(${c.axis} × ${annotateMode(c.mode)}), fit_context=${c.fitContext}`;
 }
 function neighborLine(n: NeighborType): string {
-  return `${n.dessert}(${n.axis} × ${n.mode}), bridge_factor=${n.bridgeFactor}`;
+  return `${n.dessert}(${n.axis} × ${annotateMode(n.mode)}), bridge_factor=${n.bridgeFactor}`;
 }
 function contrastLine(c: ContrastType): string {
-  return `${c.dessert}(${c.axis} × ${c.mode})`;
+  return `${c.dessert}(${c.axis} × ${annotateMode(c.mode)})`;
 }
 
 export function buildUserPrompt(input: ReportV3Input): string {
   const axisKR = AXIS_KR[input.axis];
-  const modeKR = MODE_KR[input.mode];
+  const modeKR = annotateMode(MODE_KR[input.mode]);
   const otherFactorsKR = input.otherFactors.map((k) => FACTOR_KR[k]).join(", ") || "없음";
   const leadFactorKR = input.leadFactors.map((f) => FACTOR_KR[f]).join(", ");
 
@@ -598,7 +632,7 @@ export function buildUserPrompt(input: ReportV3Input): string {
     .map(([k, v]) => `${FACTOR_KR[k as FactorKey]}: ${fmtScore(v)}점`)
     .join(" / ");
   const modeScores = Object.entries(input.modeScores)
-    .map(([k, v]) => `${MODE_KR[k as ModeKey]}: ${fmtScore(v)}점${k === input.mode ? " ← 확정" : ""}`)
+    .map(([k, v]) => `${annotateMode(MODE_KR[k as ModeKey])}: ${fmtScore(v)}점${k === input.mode ? " ← 확정" : ""}`)
     .join(" / ");
   const copingSubScores = Object.entries(input.copingSubScores)
     .map(([k, v]) => `${k}: ${fmtScore(v)}점`)

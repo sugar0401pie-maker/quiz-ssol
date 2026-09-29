@@ -43,3 +43,13 @@ export function splitIntoParagraphs(paragraphs: string[] | string, maxSentences 
   }
   return out;
 }
+
+// 2026-09-29: "말머리(•) 소제목이 새 문단으로 안 끊기고 바로 다음 문장에 붙어버린다"는
+// 피드백 — AI가 소제목 줄 뒤에 빈 줄(\n\n) 대신 줄바꿈(\n) 하나만 쓰는 경우가 있어서,
+// splitSentences가 마침표 없는 그 줄을 다음 문장에 이어 붙여버렸습니다. 마크다운을
+// 문단으로 쪼개기 전에, 말머리 줄 앞뒤에 항상 빈 줄이 있도록 강제로 정리합니다.
+export function normalizeBulletParagraphBreaks(markdown: string): string {
+  return markdown
+    .replace(/[ \t]*\n?[ \t]*•/g, "\n\n•") // 말머리 앞: 항상 빈 줄
+    .replace(/(•[^\n]*)\n(?!\n)/g, "$1\n\n"); // 말머리 줄 뒤: 항상 빈 줄(이미 빈 줄이면 그대로 둠)
+}

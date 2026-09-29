@@ -1,6 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
-import { splitIntoParagraphs } from "../paragraphSplit";
+import { normalizeBulletParagraphBreaks, splitIntoParagraphs } from "../paragraphSplit";
 import { buildSystemPrompt, buildUserPrompt, type ReportV3Input } from "./prompt";
 import { assembleSection1 } from "./sectionOneAssembler";
 import type { GeneratedSectionsV3 } from "./types";
@@ -28,7 +28,7 @@ function parseSections(markdown: string): Omit<GeneratedSectionsV3, "section1"> 
   for (const m of matches) {
     const key = SECTION_HEADERS[m[1]];
     if (!key) continue;
-    const body = m[2].trim();
+    const body = normalizeBulletParagraphBreaks(m[2].trim());
     if (!body) continue;
     const paragraphs = body
       .split(/\n\n+/)
