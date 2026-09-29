@@ -3,12 +3,17 @@ import OpenAI from "openai";
 import { normalizeBulletParagraphBreaks, splitIntoParagraphs } from "../paragraphSplit";
 import { buildSystemPrompt, buildUserPrompt, type ReportV3Input } from "./prompt";
 import { assembleSection1 } from "./sectionOneAssembler";
+import { assembleSection6Relationships } from "./section6Assembler";
 import type { GeneratedSectionsV3 } from "./types";
 
 // 2026-09-29: deep-report-prompt-8section-v6.md 최신 반영 — 섹션 1(웰니스 프로파일)은 더
 // 이상 OpenAI가 쓰지 않습니다. lib/reportV3/sectionOneAssembler.ts가 고정 문장 뱅크로 즉시
-// 조립하고(무료 미리보기·결제 후 리포트 모두 이 함수 하나로 항상 같은 결과), AI는 2~8번
-// 7개 섹션만 생성합니다.
+// 조립합니다(무료 미리보기·결제 후 리포트 모두 이 함수 하나로 항상 같은 결과).
+// 2026-09-29 추가: 섹션 6도 절반은 서버가 조립합니다 — companions()/neighbors()/contrasts()의
+// 92가지 조합을 section6Assembler.ts가 고정 문장으로 만들고, AI는 그 뒤에 붙는 "나와 다른
+// 사람과 잘 지내는 법" 조언 3가지만 씁니다(사장님이 조언 부분은 AI로 유지하길 원해서 6번
+// 전체를 서버 조립으로 바꾼 원안과 다르게, 절반만 서버 조립 + 절반은 AI로 갔습니다). 그래서
+// AI는 2·3·4·5·6(조언만)·7·8번을 생성합니다.
 
 export type { GeneratedSectionsV3 };
 
@@ -46,9 +51,9 @@ function totalChars(sections: Omit<GeneratedSectionsV3, "section1">): number {
     .replace(/\s/g, "").length;
 }
 
-// 2026-09-29: 섹션 1을 AI가 안 쓰게 되면서 목표 분량이 4,300~6,300자(2~8번 기준)로
-// 내려갔습니다 — 재시도 기준선은 그보다 조금 낮게 잡아 여유를 둡니다.
-const MIN_CHARS = 3800;
+// 2026-09-29: 섹션 1 전체와 섹션 6의 관계성 소개 부분을 AI가 안 쓰게 되면서 목표 분량이
+// 3,300~5,000자로 내려갔습니다 — 재시도 기준선은 그보다 조금 낮게 잡아 여유를 둡니다.
+const MIN_CHARS = 2800;
 
 async function callModel(input: ReportV3Input): Promise<Omit<GeneratedSectionsV3, "section1">> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -87,6 +92,9 @@ async function callModel(input: ReportV3Input): Promise<Omit<GeneratedSectionsV3
 /** 결제 확인 후 호출하세요. API 키가 없으면 예외를 던집니다 — 호출부에서 처리하세요. */
 export async function generateReportV3(input: ReportV3Input): Promise<GeneratedSectionsV3> {
   const section1 = assembleSection1(input);
+  const section6Relationships = assembleSection6Relationships(input.axis, input.mode, input.companions, input.neighbors, input.contrasts);
   const rest = await callModel(input);
-  return { section1, ...rest };
+  // rest.section6은 AI가 쓴 "나와 다른 사람과 잘 지내는 법" 조언 부분만 담고 있습니다 —
+  // 그 앞에 서버가 조립한 관계성 소개를 붙여 완성된 6번을 만듭니다.
+  return { section1, ...rest, section6: [...section6Relationships, ...rest.section6] };
 }
