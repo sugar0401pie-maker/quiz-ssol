@@ -31,11 +31,16 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const { data: result, error: resultError } = await admin
     .from("ssol_quiz_results")
-    .select("id, user_id")
+    .select("id, user_id, special_key")
     .eq("id", resultId)
     .single();
   if (resultError || !result || result.user_id !== user.id) {
     return NextResponse.json({ error: "result not found" }, { status: 404 });
+  }
+  // 2026-09-29: 이스터에그 히든 결과(초슈퍼울트라짱/비스코티)는 심층 리포트가 없습니다 —
+  // 결제 자체가 시작되지 않도록 서버에서 막습니다(화면에 CTA가 없는 것과 별개의 방어선).
+  if (result.special_key) {
+    return NextResponse.json({ error: "no deep report for special result" }, { status: 400 });
   }
 
   // 토스 orderId 규칙: 영문 대소문자/숫자/-_=, 6~64자.

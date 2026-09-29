@@ -25,6 +25,8 @@ import {
   type TypeCode,
 } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
+import { detectSpecialResult } from "@/lib/scoring";
+import { SPECIAL_RESULTS } from "@/lib/specialResults";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
@@ -195,6 +197,111 @@ export default function ResultPage() {
   };
 
   if (!result) return null;
+
+  // 2026-09-29: 이스터에그 히든 결과 — 5개 영역이 전부 5.00점 또는 전부 1.00점이면 15유형
+  // 체계를 벗어난 특별 결과를 보여줍니다. 심층 리포트가 필요 없는 유형이라 그 CTA와 "다른
+  // 유형과의 관계" 섹션은 없고, 결과 저장·공유(생략)·다시 하기·로그인 상태 표시는 그대로 둡니다.
+  const specialKey = detectSpecialResult(result.axisScores);
+  if (specialKey) {
+    const content = SPECIAL_RESULTS[specialKey];
+    return (
+      <div className="card">
+        <Suspense fallback={null}>
+          <SavedToastEffect onSaved={showSavedToast} />
+        </Suspense>
+        <div className="res-avatar">
+          <Image src={content.image} alt={content.title} fill sizes="480px" priority style={{ objectFit: "contain" }} />
+        </div>
+        {content.tagBadge && (
+          <p className="kicker kicker-sm" style={{ textAlign: "center" }}>
+            {content.tagBadge}
+          </p>
+        )}
+        <p className="type-reveal" style={{ textAlign: "center" }}>
+          <span className="type-name-inline serif">{content.title}</span>
+        </p>
+        <p className="type-blurb" style={{ textAlign: "center", fontWeight: 600 }}>{content.subtitle}</p>
+
+        {content.body.map((p, i) => (
+          <p key={i} className="type-blurb">{p}</p>
+        ))}
+
+        <p className="traits-title">{content.listTitle}</p>
+        <ul className="traits">
+          {content.list.map((item, i) => (
+            <li key={i}>
+              <b>{item.label}:</b> {item.text}
+            </li>
+          ))}
+        </ul>
+
+        <div className="cta">
+          <p className="cta-title">{content.calloutTitle}</p>
+          <p>{content.callout}</p>
+        </div>
+
+        <p className="type-blurb" style={{ textAlign: "center", fontStyle: "italic", marginTop: 16 }}>
+          &ldquo;{content.quote}&rdquo;
+        </p>
+
+        <div className="share-row">
+          <button className="secondary" onClick={handleSaveClick} disabled={saving}>
+            {saving ? "저장 중..." : "결과 저장하기"}
+          </button>
+        </div>
+        {toast && <div className="toast">{toast}</div>}
+
+        {confirmOverwrite && (
+          <div className="confirm-overlay">
+            <div className="confirm-box">
+              <p className="confirm-msg">이미 저장된 결과가 있어요. 다시 저장할 경우 기존 결과는 사라집니다.</p>
+              <div className="confirm-actions">
+                <button className="secondary" onClick={() => setConfirmOverwrite(false)}>
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    setConfirmOverwrite(false);
+                    doSave();
+                  }}
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button
+          className="secondary restart"
+          onClick={() => {
+            reset();
+            router.push("/");
+          }}
+        >
+          다시 해보기
+        </button>
+
+        <div className="notice">{content.footnote ?? DISCLAIMER}</div>
+
+        {authChecked && (
+          <>
+            {isLoggedIn ? (
+              <p style={{ textAlign: "center", marginTop: 14 }}>
+                <button type="button" className="text-link" onClick={handleLogout}>
+                  로그아웃
+                </button>
+              </p>
+            ) : (
+              <button type="button" className="secondary" style={{ marginTop: 14 }} onClick={() => router.push("/login")}>
+                로그인하고 저장하기
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
 
   const { confirmedAxis, typeCode, axisScores } = result;
   const dessert = DESSERT[typeCode];

@@ -10,7 +10,7 @@ import {
   type ModeKey,
   type TypeCode,
 } from "@/lib/data";
-import { scorePart1, scorePart2 } from "@/lib/scoring";
+import { detectSpecialResult, scorePart1, scorePart2 } from "@/lib/scoring";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,7 +29,7 @@ export async function GET() {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("ssol_quiz_results")
-    .select("id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key")
+    .select("id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key, special_key")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -54,6 +54,7 @@ export async function GET() {
     typeCode: data.type_key,
     confirmedAxis,
     confirmedMode,
+    specialKey: data.special_key,
   });
 }
 
@@ -132,6 +133,9 @@ export async function POST(req: Request) {
     sub_scores: scored2.subScores,
     mode_scores: scored2.modeScores,
     type_key: typeCode as TypeCode,
+    // 2026-09-29: 이스터에그 히든 결과 — 클라이언트 값이 아니라 방금 서버가 재계산한
+    // scored1.axisScores로 판정합니다(신뢰 경계).
+    special_key: detectSpecialResult(scored1.axisScores),
   };
 
   // 2026-09-26: 이미 저장된 결과가 있는 사용자가 다시 테스트하고 저장하면 "덮어쓰기"로 처리합니다.

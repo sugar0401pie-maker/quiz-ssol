@@ -45,6 +45,20 @@ export interface ScorePart1Result {
   options: AxisKey[];
 }
 
+// 2026-09-29: "이스터에그" 히든 결과 — 5개 영역 점수가 전부 극단값(5.00 또는 1.00)이면
+// 15유형 체계를 벗어난 특별 결과를 보여줍니다(심층 리포트 없음). 긍정 문항 전부 5점·역채점
+// 문항 전부 1점으로 답하면(=실제 반영 점수가 전부 5) axisScores가 모두 정확히 5.00이 되고,
+// 반대로 다 1점으로 답하면 모두 정확히 1.00이 됩니다(동일한 값의 평균은 항상 그 값 그대로라
+// 부동소수점 오차가 없습니다 — 그래도 방어적으로 작은 허용오차를 둡니다).
+export type SpecialResultKey = "cake" | "biscotti";
+
+export function detectSpecialResult(axisScores: Record<AxisKey, number>): SpecialResultKey | null {
+  const vals = Object.values(axisScores);
+  if (vals.every((v) => Math.abs(v - 5) < 0.005)) return "cake";
+  if (vals.every((v) => Math.abs(v - 1) < 0.005)) return "biscotti";
+  return null;
+}
+
 export function scorePart1(r: Part1Answers): ScorePart1Result {
   const f = {} as Record<FactorKey, number>;
   for (const [factor, ids] of Object.entries(FACTORS) as [FactorKey, string[]][]) {
