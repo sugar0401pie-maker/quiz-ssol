@@ -4,12 +4,24 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { useQuiz } from "@/lib/QuizContext";
-import { DESSERT, GENDER_TITLE } from "@/lib/data";
+import { DESSERT } from "@/lib/data";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
 
 type LocalState = "waiting" | "ready";
+
+// 2026-09-29: "작성하고 있어요..." 한 문구만 계속 떠 있으면 실제로 얼마나 진행됐는지 알 수
+// 없어 더 오래 걸리는 것처럼 느껴진다는 피드백 — 경과 시간에 따라 문구가 단계적으로
+// 바뀌도록 했습니다. 60초를 넘기면(생성이 유독 오래 걸리는 케이스) 지연을 인정하는
+// 문구로 바뀝니다.
+function waitingMessage(elapsedSec: number, dessertName: string): string {
+  if (elapsedSec < 10) return "당신의 답변을 하나씩 살펴보고 있어요....";
+  if (elapsedSec < 25) return `${dessertName}만의 레시피를 쓰는 중이에요....`;
+  if (elapsedSec < 40) return "오븐에 천천히 굽고 있어요 — 좋은 건 원래 좀 걸려요.....";
+  if (elapsedSec < 60) return "마지막으로 예쁘게 플레이팅하는 중이에요, 조금만 더요.....";
+  return "정성 들이느라 평소보다 조금 늦어지고 있어요. 곧 나와요!";
+}
 
 // 2026-09-28: "작성하고 있어요" 화면을 /result/report에서 별도 페이지로 뗐습니다 — 결제 후
 // 바로 이 페이지로 오고, 완료되면 완성된 리포트 전용 페이지(/result/report/view)로
@@ -17,14 +29,24 @@ type LocalState = "waiting" | "ready";
 // 전용 페이지(/result/report/failed)로 보냅니다 — 이 페이지 안에서 중복으로 다루지 않습니다.
 export default function ReportGeneratingPage() {
   const router = useRouter();
-  const { result, savedResultId, userName, userGender } = useQuiz();
+  const { result, savedResultId } = useQuiz();
   const [state, setState] = useState<LocalState>("waiting");
+  const [elapsedSec, setElapsedSec] = useState(0);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedAt = useRef(Date.now());
 
   useEffect(() => {
     if (!result) router.replace("/");
   }, [result, router]);
+
+  useEffect(() => {
+    if (state !== "waiting") return;
+    const tick = () => setElapsedSec(Math.floor((Date.now() - startedAt.current) / 1000));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [state]);
 
   const poll = async (resultId: string) => {
     let data: { status?: string } | null = null;
@@ -73,7 +95,6 @@ export default function ReportGeneratingPage() {
   if (!result) return null;
   const { typeCode, axisScores } = result;
   const dessert = DESSERT[typeCode];
-  const honorific = `${userName}${GENDER_TITLE[userGender || "none"]}님`;
 
   return (
     <div className="card">
@@ -82,7 +103,7 @@ export default function ReportGeneratingPage() {
       <RadarChart scores={axisScores} />
       {state === "waiting" ? (
         <div className="cta">
-          <p className="cta-title pulse-text">{honorific}의 심층 보고서를 작성하고 있어요...</p>
+          <p className="cta-title pulse-text">{waitingMessage(elapsedSec, dessert.name)}</p>
           <p>완료되면 이 화면이 저절로 넘어가요. 잠깐만 기다려주세요.</p>
         </div>
       ) : (
