@@ -2,14 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import RadarChart from "@/components/RadarChart";
 import { ReportParagraph } from "@/components/ReportParagraph";
 import { useQuiz } from "@/lib/QuizContext";
-import { AXES, DESSERT, type TypeCode } from "@/lib/data";
-import { companions, contrasts, leadFactors, leadGroup, neighbors } from "@/lib/reportV3/companions";
+import { DESSERT } from "@/lib/data";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
-import { findGardenPair } from "@/lib/reportV3/gardenPairs";
 import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
 import { SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
 import { createClient } from "@/lib/supabase/client";
@@ -71,20 +68,9 @@ export default function ReportViewPage() {
   }, [savedResultId]);
 
   if (!result || !checked || !assembled) return null;
-  const { typeCode, confirmedAxis, confirmedMode, axisScores, factorScores } = result;
+  const { typeCode, confirmedAxis, axisScores } = result;
   const dessert = DESSERT[typeCode];
   const { sectionTitle3, sectionTitle4, sectionTitle5 } = sectionTitlesForAxis(confirmedAxis);
-
-  // 2026-09-29: "관계 유형 중 하나라도 대표 7쌍과 겹치면 6번 위에 정원 활동 그림을
-  // 보여달라"는 요청 — 6번에 실제로 등장하는 동행형·이웃형·대조형 유형과 겹치는지 확인.
-  const leads = leadFactors(factorScores, AXES[confirmedAxis]);
-  const grp = leadGroup(leads);
-  const relatedTypes: TypeCode[] = [
-    ...companions(confirmedAxis, confirmedMode, grp),
-    ...neighbors(confirmedAxis, confirmedMode, factorScores),
-    ...contrasts(confirmedAxis, confirmedMode),
-  ].map((r) => r.type);
-  const gardenPair = findGardenPair(typeCode, relatedTypes);
 
   const handleSaveResult = async () => {
     setBusy(true);
@@ -164,20 +150,6 @@ export default function ReportViewPage() {
         <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
-      {gardenPair && (
-        <div style={{ margin: "20px 0 4px" }}>
-          <Image
-            src={gardenPair.image}
-            alt={`${dessert.name}와(과) 함께 ${gardenPair.activity}`}
-            width={590}
-            height={590}
-            style={{ width: "100%", height: "auto", borderRadius: 16, display: "block" }}
-          />
-          <p className="muted" style={{ textAlign: "center", fontSize: 12.5, marginTop: 6 }}>
-            {gardenPair.activity} — 아래 관계성에 등장하는 유형과 특별히 닮은 순간이에요.
-          </p>
-        </div>
-      )}
       <p className="traits-title">6. {SECTION_TITLES[5]}</p>
       {assembled.section6.map((p, i) => (
         <ReportParagraph key={i} text={p} className="type-blurb" />
