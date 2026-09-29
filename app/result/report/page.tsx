@@ -110,8 +110,11 @@ export default function ReportPage() {
 
   // 2026-09-28: 섹션 1(웰니스 프로파일) 무료 공개 — 결제 전에도 로그인+저장된 결과만 있으면
   // AI가 쓴 전체 내용을 볼 수 있습니다(한 번 생성하면 서버에 캐싱돼요).
+  // 2026-09-29: view === "locked"일 때만 호출하도록 제한 — 그 전엔 "checking" 상태라
+  // 결제 확인 중이거나 곧 /generating·/view로 리다이렉트될 수 있는데, 그런 경우까지 매번
+  // 이 fetch가 나가면 화면에 보여주지도 않을 섹션1을 AI가 새로 쓰고(비용 발생) 바로 버려집니다.
   useEffect(() => {
-    if (!savedResultId) return;
+    if (view !== "locked" || !savedResultId) return;
     (async () => {
       try {
         const res = await fetch(`/api/report/preview?resultId=${savedResultId}`);
@@ -122,7 +125,7 @@ export default function ReportPage() {
         // 실패해도 잠금 목록에 1번을 다시 보여주는 것으로 자연스럽게 대체됩니다.
       }
     })();
-  }, [savedResultId]);
+  }, [view, savedResultId]);
 
   if (!result) return null;
   const { typeCode, confirmedAxis, axisScores } = result;
