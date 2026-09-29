@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { useQuiz } from "@/lib/QuizContext";
-import { AXIS_KR, DESSERT } from "@/lib/data";
-import { EUL_REUL } from "@/lib/josa";
+import { DESSERT } from "@/lib/data";
+import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
+import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
+import { SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
 import { createClient } from "@/lib/supabase/client";
 
 const SOWELLA_URL = "https://app.ssolwellnesshouse.com";
@@ -14,28 +16,6 @@ const SOWELLA_MESSAGE =
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
-
-const SECTION_TITLES = [
-  "당신의 웰니스 프로파일",
-  "주목할 만한 부분은",
-  "",
-  "더 자세히 들여다보면",
-  "",
-  "다른 유형과의 관계성",
-  "앞으로 나아갈 방향",
-  "바로 지금, 작은 변화를 만들어봐요",
-];
-
-interface AssembledV3 {
-  section1: string[];
-  section2: string[];
-  section3: string[];
-  section4: string[];
-  section5: string[];
-  section6: string[];
-  section7: string[];
-  section8: string[];
-}
 
 // 2026-09-28: "심층보고서를 완전히 별도 페이지로" 요청 — 결제/대기 상태를 다루던
 // /result/report와 분리해서, 이 페이지는 오직 "완성된 리포트 열람"만 담당합니다.
@@ -46,7 +26,7 @@ export default function ReportViewPage() {
   const router = useRouter();
   const { result, savedResultId, setSavedResultId, userName, userGender } = useQuiz();
   const [toast, setToast] = useState("");
-  const [assembled, setAssembled] = useState<AssembledV3 | null>(null);
+  const [assembled, setAssembled] = useState<GeneratedSectionsV3 | null>(null);
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [mailOpen, setMailOpen] = useState(false);
@@ -89,45 +69,11 @@ export default function ReportViewPage() {
   if (!result || !checked || !assembled) return null;
   const { typeCode, confirmedAxis, axisScores } = result;
   const dessert = DESSERT[typeCode];
-  const axisKR = AXIS_KR[confirmedAxis];
-  const sectionTitle3 = `${axisKR}${EUL_REUL(axisKR)} 다루는 나의 방식`;
-  const sectionTitle4 = "더 자세히 들여다보면";
-  const sectionTitle5 = `${axisKR}${EUL_REUL(axisKR)} 고민하는 나의 모습`;
-
-  const ensureSavedResult = async (): Promise<{ ok: boolean }> => {
-    if (savedResultId) return { ok: true };
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { ok: false };
-    const res = await fetch("/api/results", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userName,
-        gender: userGender,
-        part1Answers: result.part1Answers,
-        part2Answers: result.part2Answers,
-        confirmedAxis: result.confirmedAxis,
-        confirmedMode: result.confirmedMode,
-        typeCode: result.typeCode,
-        axisScores: result.axisScores,
-        factorScores: result.factorScores,
-      }),
-    });
-    if (!res.ok) return { ok: false };
-    const data = await res.json();
-    if (data?.id) {
-      setSavedResultId(data.id);
-      return { ok: true };
-    }
-    return { ok: false };
-  };
+  const { sectionTitle3, sectionTitle4, sectionTitle5 } = sectionTitlesForAxis(confirmedAxis);
 
   const handleSaveResult = async () => {
     setBusy(true);
-    const outcome = await ensureSavedResult();
+    const outcome = await ensureSavedResultShared({ savedResultId, setSavedResultId, userName, userGender, result });
     setBusy(false);
     setToast(outcome.ok ? "저장되었습니다!" : "저장 확인에 실패했어요. 잠시 후 다시 시도해주세요.");
   };

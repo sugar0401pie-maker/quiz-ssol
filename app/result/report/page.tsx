@@ -4,23 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
-import { AXIS_KR, DESSERT } from "@/lib/data";
-import { EUL_REUL } from "@/lib/josa";
+import { DESSERT } from "@/lib/data";
+import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
+import { SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
 import { createClient } from "@/lib/supabase/client";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
-
-const SECTION_TITLES = [
-  "당신의 웰니스 프로파일",
-  "주목할 만한 부분은",
-  "", // 3번은 영역에 따라 제목이 바뀜(아래 sectionTitle3 참고)
-  "더 자세히 들여다보면",
-  "", // 5번도 영역 이름이 들어감(아래 sectionTitle5 참고)
-  "다른 유형과의 관계성",
-  "앞으로 나아갈 방향",
-  "바로 지금, 작은 변화를 만들어봐요",
-];
 
 // 2026-09-28: "심층보고서를 완전히 별도 페이지로 만들고 거기로 리디렉션" 요청 — 이 페이지는
 // 이제 결제 확인·잠금(paywall)·실패 상태만 다룹니다. 완성된 리포트는 항상
@@ -130,39 +120,8 @@ export default function ReportPage() {
   if (!result) return null;
   const { typeCode, confirmedAxis, axisScores } = result;
   const dessert = DESSERT[typeCode];
-  const axisKR = AXIS_KR[confirmedAxis];
 
-  type EnsureResult = { ok: true; id: string } | { ok: false; reason: "not_logged_in" | "save_failed" };
-  const ensureSavedResult = async (): Promise<EnsureResult> => {
-    if (savedResultId) return { ok: true, id: savedResultId };
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { ok: false, reason: "not_logged_in" };
-    const res = await fetch("/api/results", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userName,
-        gender: userGender,
-        part1Answers: result.part1Answers,
-        part2Answers: result.part2Answers,
-        confirmedAxis: result.confirmedAxis,
-        confirmedMode: result.confirmedMode,
-        typeCode: result.typeCode,
-        axisScores: result.axisScores,
-        factorScores: result.factorScores,
-      }),
-    });
-    if (!res.ok) return { ok: false, reason: "save_failed" };
-    const data = await res.json();
-    if (data?.id) {
-      setSavedResultId(data.id);
-      return { ok: true, id: data.id };
-    }
-    return { ok: false, reason: "save_failed" };
-  };
+  const ensureSavedResult = () => ensureSavedResultShared({ savedResultId, setSavedResultId, userName, userGender, result });
 
   const payForReport = async () => {
     setBusy(true);
@@ -262,9 +221,7 @@ export default function ReportPage() {
     </button>
   );
 
-  const sectionTitle3 = `${axisKR}${EUL_REUL(axisKR)} 다루는 나의 방식`;
-  const sectionTitle4 = "더 자세히 들여다보면";
-  const sectionTitle5 = `${axisKR}${EUL_REUL(axisKR)} 고민하는 나의 모습`;
+  const { sectionTitle3, sectionTitle4, sectionTitle5 } = sectionTitlesForAxis(confirmedAxis);
 
   if (view === "checking") {
     return (

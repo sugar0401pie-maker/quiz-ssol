@@ -2,21 +2,13 @@ import "server-only";
 import OpenAI from "openai";
 import { splitIntoParagraphs } from "../paragraphSplit";
 import { buildSystemPrompt, buildUserPrompt, type PromptSections, type ReportV3Input } from "./prompt";
+import type { GeneratedSectionsV3 } from "./types";
 
 // 2026-09-28: v6 프롬프트 반영 — 이제 섹션 1(웰니스 프로파일)도 OpenAI가 직접 씁니다.
 // (이전엔 lib/reportV3/domainProfile.ts가 결정론적으로 조립해 결제 없이 무료로 먼저
 // 보여줬지만, v6는 1~8번 전부를 하나의 통합 리포트로 취급합니다 — 더 이상 무료 미리보기 없음.)
 
-export interface GeneratedSectionsV3 {
-  section1: string[];
-  section2: string[];
-  section3: string[];
-  section4: string[];
-  section5: string[];
-  section6: string[];
-  section7: string[];
-  section8: string[];
-}
+export type { GeneratedSectionsV3 };
 
 const SECTION_HEADERS: Record<string, keyof GeneratedSectionsV3> = {
   "1": "section1",
