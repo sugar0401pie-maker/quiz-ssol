@@ -38,7 +38,7 @@ export default function IntroPage() {
             "linear-gradient(to top, rgba(255,247,236,1) 0%, rgba(255,247,236,0.95) 45%, rgba(255,247,236,0) 100%)",
         }}
       >
-        <p className="tiny social-proof" style={{ margin: "0 0 12px", textAlign: "center" }}>
+        <p className="tiny social-proof" style={{ margin: "0 0 12px", textAlign: "center", color: "#fff" }}>
           🍰 벌써 1,524명이 참여했어요
         </p>
         <button

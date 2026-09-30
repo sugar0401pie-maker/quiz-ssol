@@ -9,7 +9,7 @@ import { DESSERT } from "@/lib/data";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
 import { SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
 import { createClient } from "@/lib/supabase/client";
-import { EUL_REUL } from "@/lib/josa";
+import { EUL_REUL, I_GA } from "@/lib/josa";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
@@ -231,7 +231,9 @@ export default function ReportPage() {
         {backBtn}
         <p className="kicker kicker-sm">심층 리포트</p>
         <h1 className="serif">{dessert.name}의 웰니스 이야기</h1>
-        <p className="muted" style={{ marginTop: 12 }}>저장된 보고서가 있는지 찾고있어요..</p>
+        <p className="muted" style={{ marginTop: 12 }}>
+          미리 구워놓은 {dessert.name}{I_GA(dessert.name)} 있는지 찾고 있어요...
+        </p>
       </div>
     );
   }

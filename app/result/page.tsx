@@ -25,6 +25,7 @@ import {
   type TypeCode,
 } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
+import { splitIntoParagraphs } from "@/lib/paragraphSplit";
 import { detectSpecialResult } from "@/lib/scoring";
 import { SPECIAL_RESULTS } from "@/lib/specialResults";
 
@@ -383,7 +384,9 @@ export default function ResultPage() {
                   <Image src={`/images/icons/icon-${resolveIconKey(d.icon)}.png`} alt={d.name} fill sizes="92px" />
                 </div>
                 <p className="match-name">{d.name}</p>
-                <p className="match-desc">{tone.body}</p>
+                {splitIntoParagraphs(tone.body, 1).map((line, i) => (
+                  <p key={i} className="match-desc">{line}</p>
+                ))}
               </div>
             );
           });

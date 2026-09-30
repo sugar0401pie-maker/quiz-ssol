@@ -15,6 +15,7 @@ type HistoryItem = {
   typeCode: string | null;
   dessertName: string | null;
   hasReport: boolean;
+  isPrimary: boolean;
 };
 
 function formatDate(iso: string): string {
@@ -28,6 +29,8 @@ function formatDate(iso: string): string {
 // 보여줍니다. 항목을 누르면 그 기록을 Context에 불러와 /result 화면 자체가 그 과거
 // 결과에 맞게 나오도록 합니다(/result는 Context의 result를 그대로 쓰므로, 최근에 막
 // 테스트를 마친 경우와 똑같이 동작합니다).
+// 2026-09-30 추가: 유형마다 "대표 유형으로 설정" 버튼 — profiles.primary_quiz_result_id에
+// 저장되는 값이라, app.ssolwellnesshouse.com(홈 탭·채팅 개인화)도 같은 값을 그대로 씁니다.
 export default function HistoryPage() {
   const router = useRouter();
   const { setProfile, setResult, setSavedResultId } = useQuiz();
@@ -35,6 +38,7 @@ export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [error, setError] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [settingPrimaryId, setSettingPrimaryId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -86,6 +90,24 @@ export default function HistoryPage() {
     }
   };
 
+  const setPrimary = async (resultId: string) => {
+    if (settingPrimaryId) return;
+    setSettingPrimaryId(resultId);
+    try {
+      const res = await fetch("/api/history/primary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resultId }),
+      });
+      if (!res.ok) throw new Error();
+      setItems((prev) => prev.map((it) => ({ ...it, isPrimary: it.resultId === resultId })));
+    } catch {
+      setError("대표 유형 설정에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setSettingPrimaryId(null);
+    }
+  };
+
   const backBtn = (
     <button className="secondary" style={{ width: "auto", padding: "8px 14px", fontSize: 14, marginBottom: 16 }} onClick={() => router.push("/result")}>
       ← 뒤로
@@ -121,6 +143,9 @@ export default function HistoryPage() {
       {backBtn}
       <p className="kicker kicker-sm">지난 테스트 결과</p>
       <h1 className="serif">지난 테스트 결과 열람하기</h1>
+      <p className="muted" style={{ margin: "4px 0 16px" }}>
+        대표 유형은 쏘웰라 홈·채팅에서 나를 소개할 때 쓰여요.
+      </p>
 
       {error && <p className="muted" style={{ marginTop: 12 }}>{error}</p>}
 
@@ -129,21 +154,46 @@ export default function HistoryPage() {
       )}
 
       {items.map((item) => (
-        <div
-          key={item.resultId}
-          className="history-row"
-          role="button"
-          tabIndex={0}
-          onClick={() => openResult(item.resultId)}
-          style={{ cursor: openingId ? "default" : "pointer", opacity: openingId && openingId !== item.resultId ? 0.5 : 1 }}
-        >
-          <div>
-            <p className="history-row-date">{formatDate(item.createdAt)}</p>
-            <p className="history-row-type">{item.dessertName ?? "히든 결과"}</p>
+        <div key={item.resultId} className="history-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => openResult(item.resultId)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              cursor: openingId ? "default" : "pointer",
+              opacity: openingId && openingId !== item.resultId ? 0.5 : 1,
+            }}
+          >
+            <div>
+              <p className="history-row-date">{formatDate(item.createdAt)}</p>
+              <p className="history-row-type">{item.dessertName ?? "히든 결과"}</p>
+            </div>
+            <span className={item.hasReport ? "history-badge history-badge-on" : "history-badge"}>
+              {openingId === item.resultId ? "불러오는 중..." : item.hasReport ? "심층보고서 있음" : "심층보고서 없음"}
+            </span>
           </div>
-          <span className={item.hasReport ? "history-badge history-badge-on" : "history-badge"}>
-            {openingId === item.resultId ? "불러오는 중..." : item.hasReport ? "심층보고서 있음" : "심층보고서 없음"}
-          </span>
+          {item.isPrimary ? (
+            <span className="history-badge history-badge-on" style={{ alignSelf: "flex-start" }}>
+              ★ 대표 유형
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="secondary"
+              style={{ width: "auto", padding: "6px 12px", fontSize: 12.5 }}
+              disabled={!!settingPrimaryId}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPrimary(item.resultId);
+              }}
+            >
+              {settingPrimaryId === item.resultId ? "설정 중..." : "대표 유형으로 설정"}
+            </button>
+          )}
         </div>
       ))}
     </div>
