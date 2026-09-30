@@ -272,6 +272,7 @@ button:active { transform: scale(0.98); }
 .report-section-body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sky); }
 .report-section-body p { font-size: 15px; color: var(--text2); line-height: 1.7; margin: 0 0 10px; white-space: pre-line; }
 .report-section-body p:last-child { margin-bottom: 0; }
+.lead-in-summary { font-size: 16.5px; }
 
 /* 쏠 AI 채팅 */
 .chat-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
