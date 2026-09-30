@@ -92,8 +92,13 @@ export function assembleSection1(input: SectionOneInput): string[] {
   );
   paragraphs.push(IDENTITY_BANK[typeCode] ?? `당신은 ${dessertName} 유형이에요.`);
 
-  // 확정 영역을 뺀 나머지 4개 영역의 순위(점수 내림차순, 동점이면 고정 순서로 결정론 유지).
-  const rankOrder = [...AXIS_ORDER].sort((a, b) => axisScores[b] - axisScores[a] || AXIS_ORDER.indexOf(a) - AXIS_ORDER.indexOf(b));
+  // 확정 영역을 뺀 나머지 4개 영역끼리만 순위를 매깁니다(점수 내림차순, 동점이면 고정
+  // 순서). 확정 영역이 수학적으로 가장 낮은 점수가 아닌 경우(동점·all_high 화면에서
+  // 사용자가 다른 영역을 직접 고른 경우)에도 나머지 4개는 항상 1~4위 안에 들어오도록
+  // 보장합니다 — 예전엔 5개 전체로 순위를 매겨서, 이런 경우 확정 영역이 아닌 다른 영역이
+  // 5위를 받아 RANK_BANK[5](정의 없음 → "undefined" 문자열)가 노출되는 버그가 있었습니다.
+  const otherAxes = AXIS_ORDER.filter((a) => a !== confirmedAxis);
+  const rankOrder = [...otherAxes].sort((a, b) => axisScores[b] - axisScores[a] || AXIS_ORDER.indexOf(a) - AXIS_ORDER.indexOf(b));
   const rankOf: Partial<Record<AxisKey, number>> = {};
   rankOrder.forEach((a, i) => (rankOf[a] = i + 1));
 
@@ -106,8 +111,10 @@ export function assembleSection1(input: SectionOneInput): string[] {
 
     paragraphs.push(`• ${axisKR} ${fmtScore(score)}점`);
 
+    // 2026-09-29: "• 진로 2.67점" 소제목에 이미 점수가 있으니, 바로 아래 문장에서 점수를
+    // 또 반복하지 않습니다(사장님 피드백 — 중복 노출).
     const state = scoreStateClause(score, isConfirmed);
-    paragraphs.push(`${axisKR}${EUN_NEUN(axisKR)} ${fmtScore(score)}점으로, ${state}. ${MEANING_BANK[axis]}`);
+    paragraphs.push(`${axisKR}${EUN_NEUN(axisKR)} ${state}. ${MEANING_BANK[axis]}`);
 
     // 그 영역 하위요인 중 가장 낮은 것 하나(동점이면 배경지식 나열 순서상 먼저 나오는 것).
     const factors = AXES_FOR_DOMAIN[axis];
@@ -122,7 +129,9 @@ export function assembleSection1(input: SectionOneInput): string[] {
     } else {
       bodySentence = HIGH_SCORE_BANK[axis];
     }
-    const positionSentence = isConfirmed ? "이 리포트가 가장 자세히 들여다볼 곳이 바로 여기입니다." : RANK_BANK[rankOf[axis] ?? 3];
+    const positionSentence = isConfirmed
+      ? "이 리포트가 가장 자세히 들여다볼 곳이 바로 여기입니다."
+      : RANK_BANK[rankOf[axis] ?? 3] ?? "다섯 영역 중 한 자리를 차지하고 있습니다."; // 방어적 기본값(정상 흐름에선 항상 1~4위 중 하나)
     paragraphs.push(`${bodySentence} ${positionSentence}`);
 
     const isLastDomain = idx === AXIS_ORDER.length - 1;
