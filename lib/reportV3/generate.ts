@@ -66,6 +66,11 @@ async function callModel(input: ReportV3Input): Promise<Omit<GeneratedSectionsV3
   const system = buildSystemPrompt();
   const user = buildUserPrompt(input);
 
+  // 2026-09-30: 두 번 다 "incomplete"면 lastSections가 끝까지 null로 남아
+  // generateReportV3()에서 rest.section6 접근 시 크래시하는 버그가 있었습니다(잘린
+  // 응답이어도 일단 파싱해서 lastSections에 기록해두고, 정말 아무것도 못 받았을 때만
+  // 명시적으로 에러를 던지도록 고쳤습니다 — 호출부가 이미 try/catch로 "failed" 상태
+  // 처리를 하고 있으니 여기서 에러를 던지는 편이 원인 불명의 null 접근보다 낫습니다).
   let lastSections: Omit<GeneratedSectionsV3, "section1"> | null = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await client.responses.create({
@@ -75,17 +80,19 @@ async function callModel(input: ReportV3Input): Promise<Omit<GeneratedSectionsV3
       input: user,
       max_output_tokens: 25000,
     });
-    if (res.status === "incomplete") {
-      console.error("심층 리포트 생성이 잘렸어요:", res.incomplete_details?.reason);
-      continue; // 잘린 결과는 쓰지 않고 재시도
-    }
     const text = res.output_text ?? "";
     const parsed = parseSections(text);
+    if (res.status === "incomplete") {
+      console.error("심층 리포트 생성이 잘렸어요:", res.incomplete_details?.reason);
+      lastSections = parsed; // 잘렸어도 재시도까지 실패하면 최소한 이거라도 씁니다.
+      continue;
+    }
     lastSections = parsed;
     const chars = totalChars(parsed);
     if (chars >= MIN_CHARS) return parsed;
   }
-  return lastSections!;
+  if (!lastSections) throw new Error("심층 리포트 생성 응답을 받지 못했습니다");
+  return lastSections;
 }
 
 // 2026-09-30: 섹션 1은 호출부(무료 미리보기/결제 후 생성 라우트)가 section1Cache.ts를 통해

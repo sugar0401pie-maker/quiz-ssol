@@ -2,20 +2,19 @@
 
 import { useRef, useState } from "react";
 import { AXIS_KR, AXIS_ORDER, type AxisKey } from "@/lib/data";
+import { RADAR_CX, RADAR_CY, RADAR_MAX_R, RADAR_MAX_SCORE, radarPointAt } from "@/lib/radarGeometry";
 import { fmtScore } from "@/lib/scoring";
 
 // 외부 차트 라이브러리 없이 순수 SVG 로 좌표를 직접 계산해서 그립니다.
 // v2: 점수는 이제 도메인 합계(0~20)가 아니라 영역 점수(하위요인 평균의 평균, 1~5)입니다.
-const CX = 142;
-const CY = 100;
-const MAX_R = 72;
-const MAX_SCORE = 5;
-const N = AXIS_ORDER.length;
-const angleFor = (i: number) => ((-90 + i * (360 / N)) * Math.PI) / 180;
-const pointAt = (i: number, r: number): [number, number] => {
-  const a = angleFor(i);
-  return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
-};
+// 2026-09-30: 좌표 상수·계산은 lib/radarGeometry.ts로 옮겨서 이메일용 PNG 렌더러
+// (app/api/report/radar-image/route.ts)와 공유합니다 — 각자 하드코딩했더니 실제로
+// 중심(CX)이 142/147로 어긋나 있었습니다.
+const CX = RADAR_CX;
+const CY = RADAR_CY;
+const MAX_R = RADAR_MAX_R;
+const MAX_SCORE = RADAR_MAX_SCORE;
+const pointAt = radarPointAt;
 
 interface Tip {
   text: string;

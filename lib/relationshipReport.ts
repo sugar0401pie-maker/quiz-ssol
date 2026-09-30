@@ -13,6 +13,7 @@ import {
   type ModeKey,
   type TypeCode,
 } from "./data";
+import { annotateMode } from "./reportV3/modeAnnotation";
 
 interface Tips {
   strength: string[];
@@ -102,7 +103,7 @@ export function buildRelationshipSections(
   const friendDessert = DESSERT[friendTypeCode];
 
   const overview = [
-    `${myName}님은 ${myDessert.name}(${AXIS_KR[myAxis]} 영역 · ${MODE_KR[myMode]}) 유형이고, ${friendName}님은 ${friendDessert.name}(${AXIS_KR[friendAxis]} 영역 · ${MODE_KR[friendMode]}) 유형이에요.`,
+    `${myName}님은 ${myDessert.name}(${AXIS_KR[myAxis]} 영역 · ${annotateMode(MODE_KR[myMode])}) 유형이고, ${friendName}님은 ${friendDessert.name}(${AXIS_KR[friendAxis]} 영역 · ${annotateMode(MODE_KR[friendMode])}) 유형이에요.`,
     `두 사람의 조합은 "${tone.headline}"에 해당합니다. 아래에서 두 분의 관계를 조금 더 자세히 풀어드릴게요.`,
   ];
 

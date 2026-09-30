@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { DESSERT, type AxisKey, type ModeKey, type TypeCode } from "@/lib/data";
 import { buildReportEmailHtml } from "@/lib/reportV3/emailHtml";
+import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // 2026-09-29: 관리자 전용 — 이미 결제 완료된 주문의 심층 리포트를 다시 메일로 보냅니다.
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
 
   const typeCode = result.type_key as TypeCode;
   const [confirmedAxis] = typeCode.split("-") as [AxisKey, ModeKey];
-  const html = buildReportEmailHtml(typeCode, confirmedAxis, result.axis_scores, report.assembled as Record<string, string[]>);
+  const html = buildReportEmailHtml(typeCode, confirmedAxis, result.axis_scores, report.assembled as GeneratedSectionsV3);
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

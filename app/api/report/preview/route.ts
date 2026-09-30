@@ -24,11 +24,17 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   const { data: result, error: resultError } = await admin
     .from("ssol_quiz_results")
-    .select("user_id, type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers")
+    .select("user_id, type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers, special_key")
     .eq("id", resultId)
     .single();
   if (resultError || !result || result.user_id !== user.id) {
     return NextResponse.json({ error: "result not found" }, { status: 404 });
+  }
+  // 2026-09-30: 이스터에그 히든 결과(초슈퍼울트라짱/비스코티)는 심층 리포트가 없습니다 —
+  // app/api/orders/route.ts에는 이미 있던 방어선이 이 라우트엔 빠져 있어서, 결제 없이도
+  // 직접 이 URL로 접근하면 정상 유형인 것처럼 무료 미리보기가 나가고 있었습니다.
+  if (result.special_key) {
+    return NextResponse.json({ error: "no deep report for special result" }, { status: 400 });
   }
 
   const typeCode = result.type_key as TypeCode;

@@ -75,12 +75,15 @@ const AXES_FOR_DOMAIN: Record<AxisKey, FactorKey[]> = {
   DIR: ["values", "meaning"],
 };
 
-function scoreStateClause(score: number, isConfirmedLowest: boolean): string {
+// 2026-09-30: 예전엔 "확정 영역만 3.00점 미만일 수 있다"고 가정하고 isConfirmedLowest로
+// 분기했는데, 동점·all_high 화면에서 사용자가 "다른 영역이에요"/"기타"로 수학적 최저점이
+// 아닌 축을 직접 확정할 수 있어서 이 가정이 틀렸습니다 — 그 경우 실제로 3.00점 미만인
+// (확정되지 않은) 축이 "무난히 유지되고 있는" 문구를 받는 모순이 있었습니다. 점수만
+// 보고 판단하도록 단순화합니다(확정 여부와 무관).
+function scoreStateClause(score: number): string {
   if (score >= 4.0) return "든든하게 채워져 있는 영역이에요";
   if (score >= 3.0) return "무난히 유지되고 있는, 살짝 신경 써주면 더 든든해질 수 있는 영역이에요";
-  // 확정 영역만 3.00점 미만일 수 있습니다(규칙상 3.00 미만은 최대 하나).
-  if (isConfirmedLowest) return "다섯 영역 중 에너지가 상대적으로 덜 채워진 곳이에요";
-  return "무난히 유지되고 있는, 살짝 신경 써주면 더 든든해질 수 있는 영역이에요";
+  return "다섯 영역 중 에너지가 상대적으로 덜 채워진 곳이에요";
 }
 
 export interface SectionOneInput {
@@ -132,7 +135,7 @@ function buildSectionOneParts(input: SectionOneInput): SectionOneParts {
     const axisKR = AXIS_KR[axis];
     const score = axisScores[axis];
     const isConfirmed = axis === confirmedAxis;
-    const state = scoreStateClause(score, isConfirmed);
+    const state = scoreStateClause(score);
 
     const factors = AXES_FOR_DOMAIN[axis];
     let lowestFactor = factors[0];

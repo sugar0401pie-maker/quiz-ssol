@@ -3,6 +3,7 @@
 // 정한 섹션 제목 문구가 바뀌면 이 파일 하나만 고치면 됩니다.
 import { AXIS_KR, type AxisKey } from "@/lib/data";
 import { EUL_REUL } from "@/lib/josa";
+import type { GeneratedSectionsV3 } from "./types";
 
 /** 3번·5번은 영역 이름이 들어가서 빈 문자열 — sectionTitlesForAxis()로 채웁니다. */
 export const SECTION_TITLES = [
@@ -31,13 +32,11 @@ export function sectionTitlesForAxis(confirmedAxis: AxisKey) {
 // 소제목 바로 다음 문단이 요약입니다. 1번은 AI가 쓰지 않으므로(서버 조립) 없습니다.
 const SECTION6_ADVICE_HEADING = "• 나와 다른 사람과 잘 지내는 법";
 
-export function leadInIndexFor(sectionKey: string, paragraphs: string[]): number | null {
+export function leadInIndexFor(sectionKey: keyof GeneratedSectionsV3, paragraphs: string[]): number | null {
+  if (sectionKey === "section1") return null; // AI가 쓰지 않으므로(서버 조립) 두괄식 요약 없음.
   if (sectionKey === "section6") {
     const headingIdx = paragraphs.findIndex((p) => p.trim() === SECTION6_ADVICE_HEADING);
     return headingIdx >= 0 && headingIdx + 1 < paragraphs.length ? headingIdx + 1 : null;
   }
-  if (["section2", "section3", "section4", "section5", "section7", "section8"].includes(sectionKey)) {
-    return paragraphs.length > 0 ? 0 : null;
-  }
-  return null;
+  return paragraphs.length > 0 ? 0 : null;
 }
