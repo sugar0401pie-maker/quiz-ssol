@@ -19,26 +19,29 @@ const GENDERS: Gender[] = ["female", "male", "none"];
 // 2026-09-25: 첫 화면 "이미 테스트를 보셨다면 로그인하기" 흐름용 — 로그인한 사용자가 이전에
 // 저장해둔 가장 최근 결과를 돌려줍니다. 저장된 결과가 없으면 404로, 아예 로그인이 안 됐으면
 // 401로 응답합니다.
-export async function GET() {
+// 2026-09-30: ?resultId= 를 주면(지난 테스트 결과 열람하기 → 특정 기록 선택) 최신 결과
+// 대신 그 특정 기록을 돌려줍니다. 본인 소유가 아니면(다른 사용자의 id) 404로 처리합니다.
+export async function GET(req: Request) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
 
+  const requestedId = new URL(req.url).searchParams.get("resultId");
+
   const admin = createAdminClient();
-  const { data, error } = await admin
+  const query = admin
     .from("ssol_quiz_results")
-    .select("id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key, special_key")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("id, user_id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key, special_key");
+  const { data, error } = requestedId
+    ? await query.eq("id", requestedId).maybeSingle()
+    : await query.eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (error) {
-    console.error("fetch latest result failed:", error.message);
+    console.error("결과 조회 실패:", error.message);
     return NextResponse.json({ error: "fetch failed" }, { status: 500 });
   }
-  if (!data) return NextResponse.json({ error: "no saved result" }, { status: 404 });
+  if (!data || data.user_id !== user.id) return NextResponse.json({ error: "no saved result" }, { status: 404 });
 
   const [confirmedAxis, confirmedMode] = data.type_key.split("-");
   return NextResponse.json({
