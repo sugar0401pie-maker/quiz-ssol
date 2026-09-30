@@ -270,7 +270,7 @@ button:active { transform: scale(0.98); }
 .report-section-preview .r-teaser { color: var(--navy-soft); font-weight: 600; }
 .r-chevron { flex-shrink: 0; font-size: 12px; color: var(--navy-soft); transition: transform 0.15s ease; }
 .report-section-body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sky); }
-.report-section-body p { font-size: 13.5px; color: var(--text2); line-height: 1.65; margin: 0 0 10px; white-space: pre-line; }
+.report-section-body p { font-size: 15px; color: var(--text2); line-height: 1.7; margin: 0 0 10px; white-space: pre-line; }
 .report-section-body p:last-child { margin-bottom: 0; }
 
 /* 쏠 AI 채팅 */

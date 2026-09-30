@@ -143,10 +143,12 @@ export default function ReportViewPage() {
           { num: 5, title: sectionTitle5, key: "section5" as const },
           { num: 6, title: SECTION_TITLES[5], key: "section6" as const },
           { num: 7, title: SECTION_TITLES[6], key: "section7" as const },
-          { num: 8, title: SECTION_TITLES[7], key: "section8" as const, highlightLast: true },
+          { num: 8, title: SECTION_TITLES[7], key: "section8" as const },
         ]
-      ).map(({ num, title, key, highlightLast }) => {
-        const paragraphs = assembled[key];
+      ).map(({ num, title, key }) => {
+        // 2026-09-30: 8번의 마지막 문단("이 리포트와 함께 AI 채팅 이용권이...")은 카드 안이
+        // 아니라 저장/메일 버튼 바로 위에 별도 테두리로 빼서 보여줍니다.
+        const paragraphs = key === "section8" ? assembled.section8.slice(0, -1) : assembled[key];
         return (
           <ReportSectionCard
             key={key}
@@ -154,10 +156,15 @@ export default function ReportViewPage() {
             title={title}
             paragraphs={paragraphs}
             leadInIndex={leadInIndexFor(key, paragraphs)}
-            highlightLast={highlightLast}
           />
         );
       })}
+
+      {assembled.section8.length > 0 && (
+        <div className="section8-highlight">
+          <p>{assembled.section8[assembled.section8.length - 1]}</p>
+        </div>
+      )}
 
       <div className="report-actions">
         <div className="report-actions-row">

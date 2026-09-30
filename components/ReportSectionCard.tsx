@@ -12,7 +12,6 @@ export function ReportSectionCard({
   title,
   paragraphs,
   leadInIndex,
-  highlightLast,
   defaultOpen,
 }: {
   num: number;
@@ -20,8 +19,6 @@ export function ReportSectionCard({
   paragraphs: string[];
   /** 규칙 17(두괄식) 요약 문단의 인덱스. 그 문단만 굵게 표시합니다. */
   leadInIndex: number | null;
-  /** 섹션 8의 마지막 문단처럼 별도 강조 박스로 보여줄 때. */
-  highlightLast?: boolean;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(!!defaultOpen);
@@ -39,15 +36,9 @@ export function ReportSectionCard({
       </div>
       {open && (
         <div className="report-section-body">
-          {paragraphs.map((p, i) =>
-            highlightLast && i === paragraphs.length - 1 ? (
-              <div key={i} className="section8-highlight">
-                <p>{p}</p>
-              </div>
-            ) : (
-              <ReportParagraph key={i} text={p} forceBold={i === leadInIndex} />
-            )
-          )}
+          {paragraphs.map((p, i) => (
+            <ReportParagraph key={i} text={p} forceBold={i === leadInIndex} />
+          ))}
         </div>
       )}
     </div>
