@@ -9,6 +9,7 @@ import { DESSERT } from "@/lib/data";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
 import { SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
 import { createClient } from "@/lib/supabase/client";
+import { EUL_REUL } from "@/lib/josa";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
@@ -253,7 +254,10 @@ export default function ReportPage() {
               <ReportParagraph key={i} text={p} className="type-blurb" />
             ))
           ) : (
-            <p className="muted pulse-text">무료로 먼저 보여드릴 준비를 하고 있어요...</p>
+            <p className="muted pulse-text">
+              {dessert.name}
+              {EUL_REUL(dessert.name)} 정성껏 굽고 있어요...
+            </p>
           )}
         </>
       )}

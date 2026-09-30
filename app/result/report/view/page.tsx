@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { ReportParagraph } from "@/components/ReportParagraph";
+import { ReportSectionCard } from "@/components/ReportSectionCard";
 import { useQuiz } from "@/lib/QuizContext";
 import { DESSERT } from "@/lib/data";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
 import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
-import { SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
+import { leadInIndexFor, SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
 import { createClient } from "@/lib/supabase/client";
 
 const SOWELLA_URL = "https://app.ssolwellnesshouse.com";
@@ -130,46 +131,33 @@ export default function ReportViewPage() {
         <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
 
-      <p className="traits-title">2. {SECTION_TITLES[1]}</p>
-      {assembled.section2.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" />
-      ))}
+      <p className="muted" style={{ margin: "20px 0" }}>
+        아래 항목을 눌러 펼쳐보세요.
+      </p>
 
-      <p className="traits-title">3. {sectionTitle3}</p>
-      {assembled.section3.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" />
-      ))}
-
-      <p className="traits-title">4. {sectionTitle4}</p>
-      {assembled.section4.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" />
-      ))}
-
-      <p className="traits-title">5. {sectionTitle5}</p>
-      {assembled.section5.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" />
-      ))}
-
-      <p className="traits-title">6. {SECTION_TITLES[5]}</p>
-      {assembled.section6.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" />
-      ))}
-
-      <p className="traits-title">7. {SECTION_TITLES[6]}</p>
-      {assembled.section7.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" />
-      ))}
-
-      <p className="traits-title">8. {SECTION_TITLES[7]}</p>
-      {assembled.section8.map((p, i) =>
-        i === assembled.section8.length - 1 ? (
-          <div key={i} className="section8-highlight">
-            <p>{p}</p>
-          </div>
-        ) : (
-          <ReportParagraph key={i} text={p} className="type-blurb" />
-        )
-      )}
+      {(
+        [
+          { num: 2, title: SECTION_TITLES[1], key: "section2" as const },
+          { num: 3, title: sectionTitle3, key: "section3" as const },
+          { num: 4, title: sectionTitle4, key: "section4" as const },
+          { num: 5, title: sectionTitle5, key: "section5" as const },
+          { num: 6, title: SECTION_TITLES[5], key: "section6" as const },
+          { num: 7, title: SECTION_TITLES[6], key: "section7" as const },
+          { num: 8, title: SECTION_TITLES[7], key: "section8" as const, highlightLast: true },
+        ]
+      ).map(({ num, title, key, highlightLast }) => {
+        const paragraphs = assembled[key];
+        return (
+          <ReportSectionCard
+            key={key}
+            num={num}
+            title={title}
+            paragraphs={paragraphs}
+            leadInIndex={leadInIndexFor(key, paragraphs)}
+            highlightLast={highlightLast}
+          />
+        );
+      })}
 
       <div className="report-actions">
         <div className="report-actions-row">

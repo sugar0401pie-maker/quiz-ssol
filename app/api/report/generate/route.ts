@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { type AxisKey, type ModeKey, type TypeCode } from "@/lib/data";
 import { buildReportV3Input } from "@/lib/reportV3/buildInput";
 import { generateReportV3 } from "@/lib/reportV3/generate";
+import { getOrBuildSection1 } from "@/lib/reportV3/section1Cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -88,12 +89,13 @@ async function startOrGetGeneration(
     part2Answers: result.part2_answers,
   });
 
-  // 2026-09-29: 섹션 1은 더 이상 AI가 쓰지 않고 결정론적으로 조립되므로(generateReportV3
-  // 내부에서 처리), 무료 미리보기와 결제 후 리포트가 항상 같은 결과를 보장하기 위한 캐시
-  // 읽기/재사용 로직이 필요 없어졌습니다 — 매번 같은 입력이면 같은 결과입니다.
+  // 2026-09-30: 무료 미리보기에서 이미 섹션 1을 만들어 캐싱해뒀을 수 있으니(section1_preview)
+  // 그대로 재사용합니다 — 그래야 결제 후 리포트가 무료 미리보기와 항상 같은 문장을 보여줍니다.
+  // 캐시가 없으면 여기서 처음 만들고 캐싱합니다(무료 미리보기를 안 거치고 바로 결제한 경우).
   let sections;
   try {
-    sections = await generateReportV3(input);
+    const section1 = await getOrBuildSection1(admin, resultId, input);
+    sections = await generateReportV3(input, section1);
   } catch (err) {
     console.error("v3 리포트 생성 실패:", err instanceof Error ? err.message : err);
     await admin.from("ssol_reports").update({ status: "failed" }).eq("order_id", orderId);

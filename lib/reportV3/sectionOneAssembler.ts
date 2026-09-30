@@ -6,6 +6,15 @@
 //
 // 화면이 마크다운을 렌더링하지 않으므로(다른 섹션과 동일한 규칙), 원문의 "볼드 소제목"은
 // 전부 말머리 기호(•)로 표기합니다.
+//
+// 2026-09-30 추가: 5개 그리드 중 여러 개가 같은 점수 구간(예: 3~4점대)에 몰리면
+// scoreStateClause()가 똑같은 문장을 그대로 반복해서 어색하다는 피드백 — assembleSection1()
+// 자체는 여전히 동기·결정론적으로 유지하고, 반복이 실제로 있을 때만 assembleSection1Varied()가
+// 그 중복 문장들만 AI로 살짝 다르게 바꿔 씁니다(호출부는 preview route / generate route에서
+// section1_preview 컬럼에 캐싱해 무료 미리보기·결제 후 리포트가 항상 같은 결과를 보장합니다 —
+// 이 파일 자체는 캐싱을 모릅니다).
+import "server-only";
+import OpenAI from "openai";
 import { AXIS_KR, AXIS_ORDER, FACTOR_KR, type AxisKey, type FactorKey, type TypeCode } from "../data";
 import { EUN_NEUN, I_GA } from "../josa";
 import { fmtScore } from "../scoring";
@@ -82,15 +91,30 @@ export interface SectionOneInput {
   factorScores: Record<FactorKey, number>;
 }
 
-/** 섹션 1(당신의 웰니스 프로파일)을 AI 없이 고정 문장 뱅크로 조립합니다. */
-export function assembleSection1(input: SectionOneInput): string[] {
-  const { typeCode, dessertName, axis: confirmedAxis, axisScores, factorScores } = input;
-  const paragraphs: string[] = [];
+interface AxisPart {
+  axis: AxisKey;
+  axisKR: string;
+  score: number;
+  /** scoreStateClause()의 결과. 중복될 경우 assembleSection1Varied()가 이 값만 바꿔치기합니다. */
+  state: string;
+  bodySentence: string;
+  positionSentence: string;
+}
 
-  paragraphs.push(
-    "이 자가진단은 심리상담 전문가가 직접 고안한 자기평가도구예요. 아래 다섯 영역의 해석도 전문가가 정리한 심리학 이론에 바탕을 두고 있고, 어떤 이론인지는 이 섹션 맨 아래에서 확인하실 수 있어요."
-  );
-  paragraphs.push(IDENTITY_BANK[typeCode] ?? `당신은 ${dessertName} 유형이에요.`);
+interface SectionOneParts {
+  intro: string[];
+  perAxis: AxisPart[];
+  allBelow3: boolean;
+  closing: string[];
+}
+
+function buildSectionOneParts(input: SectionOneInput): SectionOneParts {
+  const { typeCode, dessertName, axis: confirmedAxis, axisScores, factorScores } = input;
+
+  const intro = [
+    "이 자가진단은 심리상담 전문가가 직접 고안한 자기평가도구예요. 아래 다섯 영역의 해석도 전문가가 정리한 심리학 이론에 바탕을 두고 있고, 어떤 이론인지는 이 섹션 맨 아래에서 확인하실 수 있어요.",
+    IDENTITY_BANK[typeCode] ?? `당신은 ${dessertName} 유형이에요.`,
+  ];
 
   // 확정 영역을 뺀 나머지 4개 영역끼리만 순위를 매깁니다(점수 내림차순, 동점이면 고정
   // 순서). 확정 영역이 수학적으로 가장 낮은 점수가 아닌 경우(동점·all_high 화면에서
@@ -104,19 +128,12 @@ export function assembleSection1(input: SectionOneInput): string[] {
 
   const allBelow3 = AXIS_ORDER.every((a) => axisScores[a] < 3.0);
 
-  AXIS_ORDER.forEach((axis, idx) => {
+  const perAxis: AxisPart[] = AXIS_ORDER.map((axis) => {
     const axisKR = AXIS_KR[axis];
     const score = axisScores[axis];
     const isConfirmed = axis === confirmedAxis;
-
-    paragraphs.push(`• ${axisKR} ${fmtScore(score)}점`);
-
-    // 2026-09-29: "• 진로 2.67점" 소제목에 이미 점수가 있으니, 바로 아래 문장에서 점수를
-    // 또 반복하지 않습니다(사장님 피드백 — 중복 노출).
     const state = scoreStateClause(score, isConfirmed);
-    paragraphs.push(`${axisKR}${EUN_NEUN(axisKR)} ${state}. ${MEANING_BANK[axis]}`);
 
-    // 그 영역 하위요인 중 가장 낮은 것 하나(동점이면 배경지식 나열 순서상 먼저 나오는 것).
     const factors = AXES_FOR_DOMAIN[axis];
     let lowestFactor = factors[0];
     for (const f of factors) if (factorScores[f] < factorScores[lowestFactor]) lowestFactor = f;
@@ -132,15 +149,93 @@ export function assembleSection1(input: SectionOneInput): string[] {
     const positionSentence = isConfirmed
       ? "이 리포트가 가장 자세히 들여다볼 곳이 바로 여기입니다."
       : RANK_BANK[rankOf[axis] ?? 3] ?? "다섯 영역 중 한 자리를 차지하고 있습니다."; // 방어적 기본값(정상 흐름에선 항상 1~4위 중 하나)
-    paragraphs.push(`${bodySentence} ${positionSentence}`);
 
-    const isLastDomain = idx === AXIS_ORDER.length - 1;
-    if (isLastDomain && allBelow3) paragraphs.push(EXPERT_REFERRAL);
+    return { axis, axisKR, score, state, bodySentence, positionSentence };
   });
 
   const theory = BASE_KNOWLEDGE[typeCode].relatedTheory;
-  paragraphs.push("이 리포트는 심리상담 전문가가 정리한 아래 이론을 바탕으로 해석되었습니다.");
-  paragraphs.push(`관련 이론: ${theory}`);
+  const closing = ["이 리포트는 심리상담 전문가가 정리한 아래 이론을 바탕으로 해석되었습니다.", `관련 이론: ${theory}`];
 
+  return { intro, perAxis, allBelow3, closing };
+}
+
+function renderSection1({ intro, perAxis, allBelow3, closing }: SectionOneParts): string[] {
+  const paragraphs: string[] = [...intro];
+
+  perAxis.forEach(({ axisKR, score, state, bodySentence, positionSentence }, idx) => {
+    paragraphs.push(`• ${axisKR} ${fmtScore(score)}점`);
+    // 2026-09-29: "• 진로 2.67점" 소제목에 이미 점수가 있으니, 바로 아래 문장에서 점수를
+    // 또 반복하지 않습니다(사장님 피드백 — 중복 노출).
+    paragraphs.push(`${axisKR}${EUN_NEUN(axisKR)} ${state}. ${MEANING_BANK[perAxis[idx].axis]}`);
+    paragraphs.push(`${bodySentence} ${positionSentence}`);
+
+    if (idx === perAxis.length - 1 && allBelow3) paragraphs.push(EXPERT_REFERRAL);
+  });
+
+  paragraphs.push(...closing);
   return paragraphs;
+}
+
+/** 섹션 1(당신의 웰니스 프로파일)을 AI 없이 고정 문장 뱅크로 조립합니다. */
+export function assembleSection1(input: SectionOneInput): string[] {
+  return renderSection1(buildSectionOneParts(input));
+}
+
+// 2026-09-30: 여러 그리드가 같은 점수 구간에 몰려 scoreStateClause()가 똑같은 문장을 반복할
+// 때만, 그 중복 문장들(첫 번째는 원문 그대로 두고 나머지만)을 AI 한 번 호출로 다르게
+// 바꿔 씁니다. 실패하면(키 없음·네트워크 오류·형식이 이상한 응답 등) 조용히 원문을 그대로
+// 씁니다 — 이 다양화는 순전히 표현상의 보너스이지, 실패한다고 리포트 생성 자체가 막히면
+// 안 됩니다.
+async function rewordDuplicateStates(entries: { axisKR: string; state: string }[]): Promise<string[] | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || entries.length === 0) return null;
+  try {
+    const client = new OpenAI({ apiKey });
+    const model = process.env.OPENAI_REPORT_MODEL || "gpt-6-sol";
+    const listText = entries.map((e, i) => `${i + 1}. [${e.axisKR}] "${e.state}"`).join("\n");
+    const res = await client.responses.create({
+      model,
+      reasoning: { effort: "low" },
+      instructions:
+        "너는 한국어 카피라이터야. 아래 문장들은 같은 심리 리포트 안에서 서로 다른 영역(축)에 반복해서 쓰인 서술어 구절이야(예: \"든든하게 채워져 있는 영역이에요\"). " +
+        "각 문장을 같은 의미와 같은 톤(따뜻하고 담백한 해요체, 반드시 \"~영역이에요\"로 끝남)을 유지하면서, 서로 다르게 들리도록 표현만 살짝 바꿔줘. " +
+        "축 이름이나 점수는 절대 언급하지 마(이미 문장 앞에 축 이름이 붙어서 나가). 원문 개수와 순서를 그대로 지켜서 JSON 배열로만 답하고, 다른 설명은 절대 쓰지 마. " +
+        '예: ["...영역이에요", "...영역이에요"]',
+      input: listText,
+      max_output_tokens: 600,
+    });
+    const text = res.output_text ?? "";
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed) || parsed.length !== entries.length || !parsed.every((s) => typeof s === "string" && s.trim())) return null;
+    return parsed.map((s: string) => s.trim());
+  } catch (err) {
+    console.error("섹션1 표현 다양화 실패(원문 유지):", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
+ * assembleSection1()과 같은 내용이되, 5개 그리드 중 점수 구간이 같아서 문장이 그대로
+ * 반복되는 경우에만 AI로 그 부분만 다르게 표현합니다. 호출부(프리뷰/생성 API)에서
+ * 결과를 캐싱해 무료 미리보기와 결제 후 리포트가 항상 같은 문장을 보여주도록 해야 합니다.
+ */
+export async function assembleSection1Varied(input: SectionOneInput): Promise<string[]> {
+  const parts = buildSectionOneParts(input);
+
+  const groups = new Map<string, number[]>();
+  parts.perAxis.forEach((p, i) => {
+    if (!groups.has(p.state)) groups.set(p.state, []);
+    groups.get(p.state)!.push(i);
+  });
+
+  const toReword = [...groups.values()].filter((indices) => indices.length >= 2).flatMap((indices) => indices.slice(1));
+  if (toReword.length > 0) {
+    const entries = toReword.map((i) => ({ axisKR: parts.perAxis[i].axisKR, state: parts.perAxis[i].state }));
+    const reworded = await rewordDuplicateStates(entries);
+    if (reworded) toReword.forEach((i, k) => (parts.perAxis[i].state = reworded[k]));
+  }
+
+  return renderSection1(parts);
 }

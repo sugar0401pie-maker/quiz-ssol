@@ -6,8 +6,10 @@
 const ORDINAL_PREFIX = /^(첫째|둘째|셋째|넷째|다섯째),/;
 const BULLET_LINE = /^•/;
 
-export function ReportParagraph({ text, className }: { text: string; className?: string }) {
-  if (BULLET_LINE.test(text)) {
+// 2026-09-30: 섹션 두괄식 요약 문단(규칙 17)은 패턴이 아니라 "그 섹션의 첫 문단"이라는
+// 위치로 정해지므로, 호출부가 forceBold로 직접 지정합니다.
+export function ReportParagraph({ text, className, forceBold }: { text: string; className?: string; forceBold?: boolean }) {
+  if (forceBold || BULLET_LINE.test(text)) {
     return (
       <p className={className}>
         <strong>{text}</strong>

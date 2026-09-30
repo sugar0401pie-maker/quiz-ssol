@@ -2,7 +2,6 @@ import "server-only";
 import OpenAI from "openai";
 import { normalizeBulletParagraphBreaks, splitIntoParagraphs } from "../paragraphSplit";
 import { buildSystemPrompt, buildUserPrompt, type ReportV3Input } from "./prompt";
-import { assembleSection1 } from "./sectionOneAssembler";
 import { assembleSection6Relationships } from "./section6Assembler";
 import type { GeneratedSectionsV3 } from "./types";
 
@@ -89,9 +88,12 @@ async function callModel(input: ReportV3Input): Promise<Omit<GeneratedSectionsV3
   return lastSections!;
 }
 
+// 2026-09-30: 섹션 1은 호출부(무료 미리보기/결제 후 생성 라우트)가 section1Cache.ts를 통해
+// 미리 만들어(필요하면 AI로 중복 문장만 다양화하고 캐싱까지 해서) 넘겨줍니다 — 이 함수가
+// 직접 만들면 무료 미리보기 때와 다른 결과가 나올 수 있어(다양화 호출이 매번 달라질 수
+// 있음) 호출부의 캐시를 그대로 신뢰합니다.
 /** 결제 확인 후 호출하세요. API 키가 없으면 예외를 던집니다 — 호출부에서 처리하세요. */
-export async function generateReportV3(input: ReportV3Input): Promise<GeneratedSectionsV3> {
-  const section1 = assembleSection1(input);
+export async function generateReportV3(input: ReportV3Input, section1: string[]): Promise<GeneratedSectionsV3> {
   const section6Relationships = assembleSection6Relationships(input.axis, input.mode, input.companions, input.neighbors, input.contrasts);
   const rest = await callModel(input);
   // rest.section6은 AI가 쓴 "나와 다른 사람과 잘 지내는 법" 조언 부분만 담고 있습니다 —

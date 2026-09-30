@@ -247,7 +247,10 @@ button:active { transform: scale(0.98); }
 }
 .report-section-head > div { flex: 1; min-width: 0; }
 .r-title { font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 3px; }
-.r-teaser { font-size: 12.5px; color: var(--text3); margin: 0; }
+.r-teaser {
+  font-size: 12.5px; color: var(--text3); margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .r-lock { flex-shrink: 0; font-size: 15px; opacity: 0.55; }
 .report-section-preview { cursor: default; background: var(--sky-bg); border-color: var(--sky); }
 .report-section-preview .report-section-head { cursor: pointer; }

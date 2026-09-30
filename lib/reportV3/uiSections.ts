@@ -24,3 +24,20 @@ export function sectionTitlesForAxis(confirmedAxis: AxisKey) {
     sectionTitle5: `${axisKR}${EUL_REUL(axisKR)} 고민하는 나의 모습`,
   };
 }
+
+// 2026-09-30: 2·3·4·5·7·8번은 AI가 쓴 첫 문단이 곧 두괄식 요약(프롬프트 규칙 17)이라
+// 인덱스 0. 6번은 서버가 조립한 "결이 통하는/이어진/대조되는 사람들" 소개 뒤에
+// AI가 "• 나와 다른 사람과 잘 지내는 법" 소제목 + 요약 + 조언 3개를 붙이므로, 그
+// 소제목 바로 다음 문단이 요약입니다. 1번은 AI가 쓰지 않으므로(서버 조립) 없습니다.
+const SECTION6_ADVICE_HEADING = "• 나와 다른 사람과 잘 지내는 법";
+
+export function leadInIndexFor(sectionKey: string, paragraphs: string[]): number | null {
+  if (sectionKey === "section6") {
+    const headingIdx = paragraphs.findIndex((p) => p.trim() === SECTION6_ADVICE_HEADING);
+    return headingIdx >= 0 && headingIdx + 1 < paragraphs.length ? headingIdx + 1 : null;
+  }
+  if (["section2", "section3", "section4", "section5", "section7", "section8"].includes(sectionKey)) {
+    return paragraphs.length > 0 ? 0 : null;
+  }
+  return null;
+}
