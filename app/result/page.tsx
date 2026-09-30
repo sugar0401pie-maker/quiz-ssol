@@ -127,14 +127,6 @@ export default function ResultPage() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    setIsLoggedIn(false);
-    setToast("로그아웃했어요.");
-    setTimeout(() => setToast(""), 2000);
-  };
-
   // 2026-09-25: "로그인된 상태에서 결과 저장하기를 눌렀는데 왜 다시 로그인/가입 화면으로
   // 보내냐"는 피드백 — 이미 로그인돼 있으면 화면 이동 없이 그 자리에서 바로 저장하고
   // 토스트만 띄웁니다. 로그인이 안 돼 있을 때만 기존처럼 /signup으로 보냅니다.
@@ -284,20 +276,10 @@ export default function ResultPage() {
 
         <div className="notice">{content.footnote ?? DISCLAIMER}</div>
 
-        {authChecked && (
-          <>
-            {isLoggedIn ? (
-              <p style={{ textAlign: "center", marginTop: 14 }}>
-                <button type="button" className="text-link" onClick={handleLogout}>
-                  로그아웃
-                </button>
-              </p>
-            ) : (
-              <button type="button" className="secondary" style={{ marginTop: 14 }} onClick={() => router.push("/login")}>
-                로그인하고 저장하기
-              </button>
-            )}
-          </>
+        {authChecked && !isLoggedIn && (
+          <button type="button" className="secondary" style={{ marginTop: 14 }} onClick={() => router.push("/login")}>
+            로그인하고 저장하기
+          </button>
         )}
       </div>
     );
@@ -425,6 +407,9 @@ export default function ResultPage() {
           {saving ? "저장 중..." : "결과 저장하기"}
         </button>
       </div>
+      <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={() => router.push("/history")}>
+        지난 테스트 결과 열람하기
+      </button>
       {toast && <div className="toast">{toast}</div>}
 
       {confirmOverwrite && (
@@ -460,20 +445,10 @@ export default function ResultPage() {
 
       <div className="notice">{DISCLAIMER}</div>
 
-      {authChecked && (
-        <>
-          {isLoggedIn ? (
-            <p style={{ textAlign: "center", marginTop: 14 }}>
-              <button type="button" className="text-link" onClick={handleLogout}>
-                로그아웃
-              </button>
-            </p>
-          ) : (
-            <button type="button" className="secondary" style={{ marginTop: 14 }} onClick={() => router.push("/login")}>
-              로그인하고 저장하기
-            </button>
-          )}
-        </>
+      {authChecked && !isLoggedIn && (
+        <button type="button" className="secondary" style={{ marginTop: 14 }} onClick={() => router.push("/login")}>
+          로그인하고 저장하기
+        </button>
       )}
 
       {sheetOpen && <ShareSheet typeCode={typeCode} onClose={() => setSheetOpen(false)} onToast={setToast} />}

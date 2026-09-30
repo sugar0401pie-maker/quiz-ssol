@@ -201,6 +201,18 @@ button:active { transform: scale(0.98); }
 .traits li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--navy); flex-shrink: 0; }
 .share-row { display: flex; gap: 8px; margin-top: 10px; }
 .share-row button { font-size: 13.5px; padding: 11px 12px; }
+
+.history-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+}
+.history-row-date { font-size: 12.5px; color: var(--text3); margin: 0 0 3px; }
+.history-row-type { font-size: 15px; font-weight: 700; color: var(--ink); margin: 0; }
+.history-badge {
+  flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 99px;
+  background: var(--sky-bg); color: var(--text3);
+}
+.history-badge-on { background: var(--navy); color: #fff; }
 .match-title { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 10px; }
 .match-row { display: flex; gap: 10px; margin-bottom: 20px; }
 .match-card { flex: 1; min-width: 0; border-radius: 12px; padding: 10px; border: 1px solid var(--border); }

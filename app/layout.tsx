@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Gaegu, Noto_Sans_KR } from "next/font/google";
+import AuthFooterLink from "@/components/AuthFooterLink";
 import KakaoInit from "@/components/KakaoInit";
 import { QuizProvider } from "@/lib/QuizContext";
 import "./globals.css";
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <QuizProvider>
           <div className="app">
             {children}
+            <AuthFooterLink />
             <div className="brand-footer">
               <a href="https://ssolwellnesshouse.com" target="_blank" rel="noopener noreferrer">
                 by 쏠 웰니스 하우스
