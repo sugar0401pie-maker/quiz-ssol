@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   const { data: result, error: resultError } = await admin
     .from("ssol_quiz_results")
-    .select("user_id, type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers, special_key")
+    .select("user_id, user_name, gender, type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers, special_key")
     .eq("id", resultId)
     .single();
   if (resultError || !result || result.user_id !== user.id) {
@@ -40,6 +40,8 @@ export async function GET(req: Request) {
   const typeCode = result.type_key as TypeCode;
   const [confirmedAxis, confirmedMode] = typeCode.split("-") as [AxisKey, ModeKey];
   const input = buildReportV3Input({
+    userName: result.user_name,
+    gender: result.gender,
     axis: confirmedAxis,
     mode: confirmedMode,
     axisScores: result.axis_scores,

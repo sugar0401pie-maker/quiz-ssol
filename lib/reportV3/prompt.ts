@@ -23,6 +23,10 @@ import { fmtScore } from "../scoring";
 export interface ReportV3Input {
   typeCode: TypeCode;
   dessertName: string;
+  /** 2026-10-01: 섹션 1의 "웰니스 프로파일" 소개 문단(sectionOneAssembler.ts)에서만 씁니다 —
+   * AI가 쓰는 2~8번 섹션은 여전히 "당신" 2인칭만 쓰고 실명/닉네임을 언급하지 않습니다. */
+  userName: string;
+  title: string;
   axis: AxisKey;
   mode: ModeKey;
   axisScores: Record<AxisKey, number>;

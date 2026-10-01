@@ -1,7 +1,6 @@
-import { FACTOR_KR, type AxisKey, type FactorKey } from "../data";
+import { AXES, FACTOR_KR, type AxisKey, type FactorKey } from "../data";
 import { EUL_REUL, I_GA } from "../josa";
 import { fmtScore } from "../scoring";
-import { AXES_FOR_DOMAIN } from "./axesForDomain";
 import { leadFactors } from "./companions";
 import { FACTOR_AVERAGE_V1 } from "./factorAverages";
 
@@ -44,7 +43,7 @@ export function buildAverageComparisonText(
   const who = title ? `${nickname} ${title}님` : `${nickname}님`;
 
   // 확정 영역의 주도요인(동점이면 첫 번째) — "왜 이 유형이 나왔는지"의 실제 근거입니다.
-  const [leadFactor] = leadFactors(factorScores, AXES_FOR_DOMAIN[confirmedAxis]);
+  const [leadFactor] = leadFactors(factorScores, AXES[confirmedAxis]);
   const leadLabel = FACTOR_KR[leadFactor];
   const leadIndividual = factorScores[leadFactor];
   const leadAverage = FACTOR_AVERAGE_V1[leadFactor];

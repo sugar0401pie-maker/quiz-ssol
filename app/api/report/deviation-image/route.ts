@@ -15,8 +15,11 @@ const COLOR_IND = "#D4537E";
 const COLOR_BORDER = "#f0dfc8";
 const COLOR_INK = "#4a2c2a";
 const COLOR_TEXT3 = "#8f7059";
-const TRACK_X0 = 200;
-const TRACK_X1 = 680;
+// 2026-10-01: components/SubfactorDeviationChart.tsx와 같은 이유로 트랙을 넓혔습니다(피드백:
+// 라벨 영역이 너무 넓어 그래프가 오른쪽으로 치우쳐 보임).
+const TRACK_X0 = 150;
+const TRACK_X1 = 690;
+const LABEL_X = 145;
 const ROW_HEIGHT = 34;
 const TOP_PAD = 34;
 
@@ -36,7 +39,7 @@ function buildSvg(individual: Record<FactorKey, number>, indLabel: string): stri
     const avgX = scoreToX(FACTOR_AVERAGE_V1[f]);
     const indX = scoreToX(individual[f]);
     return `<g>
-      <text x="195" y="${y + 6}" text-anchor="end" font-size="13" fill="${COLOR_INK}" font-family="Noto Sans KR">${FACTOR_KR[f]}</text>
+      <text x="${LABEL_X}" y="${y + 6}" text-anchor="end" font-size="13" fill="${COLOR_INK}" font-family="Noto Sans KR">${FACTOR_KR[f]}</text>
       <line x1="${TRACK_X0}" y1="${y}" x2="${TRACK_X1}" y2="${y}" stroke="${COLOR_BORDER}" stroke-width="1"/>
       <line x1="${Math.min(avgX, indX)}" y1="${y}" x2="${Math.max(avgX, indX)}" y2="${y}" stroke="${COLOR_IND}" stroke-width="3" opacity="0.4"/>
       <circle cx="${avgX}" cy="${y}" r="5" fill="${COLOR_AVG}"/>
@@ -50,10 +53,10 @@ function buildSvg(individual: Record<FactorKey, number>, indLabel: string): stri
     .join("");
 
   return `<svg width="700" height="${height}" viewBox="0 0 700 ${height}" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="210" cy="10" r="5" fill="${COLOR_AVG}"/>
-    <text x="222" y="14" font-size="11" fill="${COLOR_TEXT3}" font-family="Noto Sans KR">15유형 평균</text>
-    <circle cx="330" cy="10" r="6" fill="${COLOR_IND}"/>
-    <text x="344" y="14" font-size="11" fill="${COLOR_TEXT3}" font-family="Noto Sans KR">${indLabel}</text>
+    <circle cx="160" cy="10" r="5" fill="${COLOR_AVG}"/>
+    <text x="172" y="14" font-size="11" fill="${COLOR_TEXT3}" font-family="Noto Sans KR">15유형 평균</text>
+    <circle cx="280" cy="10" r="6" fill="${COLOR_IND}"/>
+    <text x="294" y="14" font-size="11" fill="${COLOR_TEXT3}" font-family="Noto Sans KR">${indLabel}</text>
     ${guides}
     ${rows}
     <text x="${TRACK_X0}" y="${height - 10}" text-anchor="middle" font-size="11" fill="${COLOR_TEXT3}" font-family="Noto Sans KR">1점</text>

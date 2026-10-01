@@ -49,7 +49,7 @@ export async function startOrGetGeneration(
 
   const { data: result, error: resultError } = await admin
     .from("ssol_quiz_results")
-    .select("type_key, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers")
+    .select("type_key, user_name, gender, axis_scores, factor_scores, sub_scores, mode_scores, part1_answers, part2_answers")
     .eq("id", resultId)
     .single();
   if (resultError || !result) {
@@ -61,6 +61,8 @@ export async function startOrGetGeneration(
   const [confirmedAxis, confirmedMode] = typeCode.split("-") as [AxisKey, ModeKey];
 
   const input = buildReportV3Input({
+    userName: result.user_name,
+    gender: result.gender,
     axis: confirmedAxis,
     mode: confirmedMode,
     axisScores: result.axis_scores,

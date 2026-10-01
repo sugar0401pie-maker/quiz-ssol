@@ -15,10 +15,9 @@
 // 이 파일 자체는 캐싱을 모릅니다).
 import "server-only";
 import OpenAI from "openai";
-import { AXIS_KR, AXIS_ORDER, FACTOR_KR, type AxisKey, type FactorKey, type TypeCode } from "../data";
+import { AXES, AXIS_KR, AXIS_ORDER, FACTOR_KR, type AxisKey, type FactorKey, type TypeCode } from "../data";
 import { EUN_NEUN, I_GA } from "../josa";
 import { fmtScore } from "../scoring";
-import { AXES_FOR_DOMAIN } from "./axesForDomain";
 import { BASE_KNOWLEDGE } from "./baseKnowledge";
 import { SCENE_SEED_A } from "./sceneSeeds";
 
@@ -82,6 +81,8 @@ function scoreStateClause(score: number): string {
 export interface SectionOneInput {
   typeCode: TypeCode;
   dessertName: string;
+  userName: string;
+  title: string;
   axis: AxisKey; // 확정 영역
   axisScores: Record<AxisKey, number>;
   factorScores: Record<FactorKey, number>;
@@ -105,9 +106,15 @@ interface SectionOneParts {
 }
 
 function buildSectionOneParts(input: SectionOneInput): SectionOneParts {
-  const { typeCode, dessertName, axis: confirmedAxis, axisScores, factorScores } = input;
+  const { typeCode, dessertName, userName, title, axis: confirmedAxis, axisScores, factorScores } = input;
 
   const intro = [
+    // 2026-10-01: 오각형 그래프 바로 다음에 — "이 그래프가 무엇을 보여주고, 더 자세한 내용은
+    // 어디서 보는지"를 먼저 짚어줍니다(사장님 피드백, 기존 "가장 크게 나눠지는 5개 기준"
+    // 표현을 이 리포트에서 이미 쓰고 있는 "다섯 영역" 용어로 다듬음). 심층 리포트 본문에서도
+    // 이 문장 바로 다음에 실제로 하위요인별 평균 대비 그래프(lib/reportV3/averageComparison.ts)가
+    // 나오니, "확인하실 수 있어요"가 곧바로 이어지는 자연스러운 전환이 됩니다.
+    `웰니스 프로파일은 다섯 영역 사이에서 가장 뚜렷하게 나타나는 경향 차이를 중심으로 보여드려요. 하위요인별 자세한 설명과, 전체 평균 대비 ${userName} ${title}님의 차이는 심층 리포트에서 확인하실 수 있어요.`,
     "이 자가진단은 심리상담 전문가가 직접 고안한 자기평가도구예요. 아래 다섯 영역의 해석도 전문가가 정리한 심리학 이론에 바탕을 두고 있고, 어떤 이론인지는 이 섹션 맨 아래에서 확인하실 수 있어요.",
     IDENTITY_BANK[typeCode] ?? `당신은 ${dessertName} 유형이에요.`,
   ];
@@ -130,7 +137,7 @@ function buildSectionOneParts(input: SectionOneInput): SectionOneParts {
     const isConfirmed = axis === confirmedAxis;
     const state = scoreStateClause(score);
 
-    const factors = AXES_FOR_DOMAIN[axis];
+    const factors = AXES[axis];
     let lowestFactor = factors[0];
     for (const f of factors) if (factorScores[f] < factorScores[lowestFactor]) lowestFactor = f;
     const lowestScore = factorScores[lowestFactor];

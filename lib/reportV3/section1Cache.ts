@@ -21,7 +21,7 @@ import { assembleSection1Varied, type SectionOneInput } from "./sectionOneAssemb
 // 버전 번호를 함께 저장해서, 조립 로직이 바뀌면(아래 SECTION1_CACHE_VERSION을 올리면)
 // 예전 버전 캐시는 자동으로 무효 처리되고 새로 조립되도록 합니다 — 버그를 고칠 때마다
 // 수동으로 DB 캐시를 지워야 한다는 걸 기억할 필요가 없어집니다.
-const SECTION1_CACHE_VERSION = 1;
+const SECTION1_CACHE_VERSION = 2;
 
 const CLAIM_STALE_MS = 20_000; // 다양화 호출은 보통 몇 초면 끝나므로, 이보다 오래된 클레임은 죽은 것으로 간주합니다.
 const POLL_INTERVAL_MS = 500;

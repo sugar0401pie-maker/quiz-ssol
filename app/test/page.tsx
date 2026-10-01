@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQuiz } from "@/lib/QuizContext";
 import {
+  AXES,
   AXIS_KR,
   AXIS_ORDER,
   DESSERT,
@@ -17,7 +18,6 @@ import {
   type TypeCode,
 } from "@/lib/data";
 import SubfactorDeviationChart from "@/components/SubfactorDeviationChart";
-import { AXES_FOR_DOMAIN } from "@/lib/reportV3/axesForDomain";
 import { buildAverageComparisonText } from "@/lib/reportV3/averageComparison";
 import type { QuizResultV2 } from "@/lib/scoring";
 
@@ -43,7 +43,7 @@ const SUBS_FOR_MODE: Record<ModeKey, CopingSubKey[]> = {
 const ALL_SUBS: CopingSubKey[] = ["problem_solving", "support", "reframing", "acceptance", "cog_avoid", "beh_avoid"];
 
 function buildFakeResult(axis: AxisKey, mode: ModeKey): QuizResultV2 {
-  const lowFactors = new Set(AXES_FOR_DOMAIN[axis]);
+  const lowFactors = new Set(AXES[axis]);
   const factorScores = Object.fromEntries(
     ALL_FACTORS.map((f) => [f, lowFactors.has(f) ? 2.3 : 3.6])
   ) as Record<FactorKey, number>;

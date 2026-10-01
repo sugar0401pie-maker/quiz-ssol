@@ -9,8 +9,12 @@ import { FACTOR_AVERAGE_V1, FACTOR_DISPLAY_ORDER } from "@/lib/reportV3/factorAv
 // 색상은 라이트/다크 모드 공통으로 고정하는 기존 관례를 따릅니다).
 const COLOR_AVG = "#F4C0D1";
 const COLOR_IND = "#D4537E";
-const TRACK_X0 = 200;
-const TRACK_X1 = 680;
+// 2026-10-01: 라벨 영역(트랙 왼쪽)이 너무 넓어서 모바일에서 그래프(트랙) 자체가 오른쪽으로
+// 치우치고 왼쪽에 빈 공간이 생긴다는 피드백 — 라벨 폭을 줄이고 트랙을 왼쪽·오른쪽으로 더
+// 넓혔습니다(200~680 → 150~690).
+const TRACK_X0 = 150;
+const TRACK_X1 = 690;
+const LABEL_X = 145;
 const ROW_HEIGHT = 34;
 const TOP_PAD = 34;
 
@@ -28,10 +32,10 @@ export default function SubfactorDeviationChart({
   return (
     <div role="img" aria-label="하위요인별 평균 대비 내 위치 그래프" style={{ width: "100%" }}>
       <svg viewBox={`0 0 700 ${height}`} width={700} height={height} style={{ width: "100%", height: "auto", display: "block" }} xmlns="http://www.w3.org/2000/svg">
-        <circle cx={210} cy={10} r={5} fill={COLOR_AVG} />
-        <text x={222} y={14} fontSize={11} fill="var(--text2)">15유형 평균</text>
-        <circle cx={330} cy={10} r={6} fill={COLOR_IND} />
-        <text x={344} y={14} fontSize={11} fill="var(--text2)">{indLabel}</text>
+        <circle cx={160} cy={10} r={5} fill={COLOR_AVG} />
+        <text x={172} y={14} fontSize={11} fill="var(--text2)">15유형 평균</text>
+        <circle cx={280} cy={10} r={6} fill={COLOR_IND} />
+        <text x={294} y={14} fontSize={11} fill="var(--text2)">{indLabel}</text>
 
         {[TRACK_X0, (TRACK_X0 + TRACK_X1) / 2, TRACK_X1].map((x) => (
           <line key={x} x1={x} y1={TOP_PAD} x2={x} y2={height - 30} stroke="var(--border)" strokeWidth={1} strokeDasharray="3,3" />
@@ -43,7 +47,7 @@ export default function SubfactorDeviationChart({
           const indX = scoreToX(individual[f]);
           return (
             <g key={f}>
-              <text x={195} y={y + 6} textAnchor="end" fontSize={13} fill="var(--ink)">{FACTOR_KR[f]}</text>
+              <text x={LABEL_X} y={y + 6} textAnchor="end" fontSize={13} fill="var(--ink)">{FACTOR_KR[f]}</text>
               <line x1={TRACK_X0} y1={y} x2={TRACK_X1} y2={y} stroke="var(--border)" strokeWidth={1} />
               <line x1={Math.min(avgX, indX)} y1={y} x2={Math.max(avgX, indX)} y2={y} stroke={COLOR_IND} strokeWidth={3} opacity={0.4} />
               <circle cx={avgX} cy={y} r={5} fill={COLOR_AVG} />
