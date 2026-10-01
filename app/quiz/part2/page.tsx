@@ -84,19 +84,39 @@ export default function Part2Page() {
     setCurrent(current - 1);
   };
 
+  const canGoForward = current < PART2_ORDER.length - 1 && answers[current] != null;
+  const goForward = () => {
+    if (!canGoForward) return;
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    setCurrent(current + 1);
+  };
+
   return (
     <div className="card">
       <div className="progress-wrap">
         <div className="progress-bar" style={{ width: `${progress}%` }} />
       </div>
-      {current > 0 && (
-        <button
-          className="secondary"
-          style={{ width: "auto", padding: "6px 12px", fontSize: 13, marginBottom: 10 }}
-          onClick={goBack}
-        >
-          ← 이전 질문
-        </button>
+      {(current > 0 || canGoForward) && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          {current > 0 && (
+            <button className="secondary" style={{ width: "auto", padding: "6px 12px", fontSize: 12 }} onClick={goBack}>
+              ← 이전 질문
+            </button>
+          )}
+          {current < PART2_ORDER.length - 1 && (
+            <button
+              className="secondary"
+              style={{ width: "auto", padding: "6px 12px", fontSize: 12, opacity: canGoForward ? 1 : 0.4 }}
+              onClick={goForward}
+              disabled={!canGoForward}
+            >
+              다음 질문 →
+            </button>
+          )}
+        </div>
       )}
       <div className="q-index">
         2부 · 질문 {current + 1} / {PART2_ORDER.length}
