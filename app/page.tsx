@@ -22,8 +22,8 @@ export default function IntroPage() {
       <Image
         src="/images/hero/hero-intro.jpg"
         alt="티파티에 초대받은 내가 사실은 디저트?!"
-        width={900}
-        height={1599}
+        width={941}
+        height={1672}
         priority
         style={{ width: "100%", height: "auto", display: "block" }}
       />
@@ -38,7 +38,10 @@ export default function IntroPage() {
             "linear-gradient(to top, rgba(255,247,236,1) 0%, rgba(255,247,236,0.95) 45%, rgba(255,247,236,0) 100%)",
         }}
       >
-        <p className="tiny social-proof" style={{ margin: "0 0 12px", textAlign: "center", color: "#fff" }}>
+        <p
+          className="tiny social-proof"
+          style={{ margin: "0 0 12px", textAlign: "center", color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.55), 0 0 2px rgba(0,0,0,0.4)" }}
+        >
           🍰 벌써 1,524명이 참여했어요
         </p>
         <button

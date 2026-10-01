@@ -51,6 +51,8 @@ body {
      사이트 전체에서 단어(공백) 경계에서만 줄을 바꾸도록 설정합니다. */
   word-break: keep-all;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   padding: 32px 16px;
 }

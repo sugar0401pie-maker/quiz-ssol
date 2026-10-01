@@ -75,11 +75,29 @@ export default function Part2Page() {
 
   const progress = Math.round((current / PART2_ORDER.length) * 100);
 
+  const goBack = () => {
+    if (current === 0) return;
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    setCurrent(current - 1);
+  };
+
   return (
     <div className="card">
       <div className="progress-wrap">
         <div className="progress-bar" style={{ width: `${progress}%` }} />
       </div>
+      {current > 0 && (
+        <button
+          className="secondary"
+          style={{ width: "auto", padding: "6px 12px", fontSize: 13, marginBottom: 10 }}
+          onClick={goBack}
+        >
+          ← 이전 질문
+        </button>
+      )}
       <div className="q-index">
         2부 · 질문 {current + 1} / {PART2_ORDER.length}
       </div>

@@ -18,12 +18,13 @@ export const dynamic = "force-dynamic";
 //    서버에 저장돼 있던 가장 최근 결과를 불러와 이어서 보여줍니다.
 export default function LoginPage() {
   const router = useRouter();
-  const { result, userName, userGender, setProfile, setResult, setSavedResultId, pendingAfterSignup, setPendingAfterSignup } =
+  const { result, userName, userGender, setProfile, setResult, setSavedResultId, pendingAfterSignup, setPendingAfterSignup, reset } =
     useQuiz();
   const [contact, setContact] = useState("");
   const [password, setPassword] = useState("");
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showNoResultModal, setShowNoResultModal] = useState(false);
 
   useEffect(() => {
     router.prefetch("/result");
@@ -142,8 +143,7 @@ export default function LoginPage() {
         if (outcome === "loaded") {
           router.push("/result");
         } else if (outcome === "none") {
-          setToast("아직 저장된 결과가 없어요. 테스트를 먼저 진행해주세요.");
-          setTimeout(() => router.push("/"), 1400);
+          setShowNoResultModal(true);
         } else {
           setToast("결과를 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
         }
@@ -210,6 +210,50 @@ export default function LoginPage() {
       </button>
 
       {toast && <div className="toast">{toast}</div>}
+
+      {showNoResultModal && (
+        <div className="confirm-overlay">
+          <div className="confirm-box" style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="secondary"
+              aria-label="닫기"
+              onClick={() => setShowNoResultModal(false)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 28,
+                height: 28,
+                padding: 0,
+                borderRadius: "50%",
+                border: "none",
+                background: "transparent",
+                fontSize: 16,
+                lineHeight: 1,
+                color: "var(--text3)",
+              }}
+            >
+              ✕
+            </button>
+            <p className="confirm-msg">테스트를 보셔야 마이페이지로 갈 수 있어요. 먼저 테스트를 보고 와주세요. 5분밖에 안 걸려요!</p>
+            <div className="confirm-actions">
+              <button className="secondary" onClick={() => setShowNoResultModal(false)}>
+                다음에 할래요
+              </button>
+              <button
+                onClick={() => {
+                  setShowNoResultModal(false);
+                  reset();
+                  router.push("/start");
+                }}
+              >
+                테스트 하러 가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
