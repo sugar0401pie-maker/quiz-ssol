@@ -18,6 +18,7 @@ import OpenAI from "openai";
 import { AXIS_KR, AXIS_ORDER, FACTOR_KR, type AxisKey, type FactorKey, type TypeCode } from "../data";
 import { EUN_NEUN, I_GA } from "../josa";
 import { fmtScore } from "../scoring";
+import { AXES_FOR_DOMAIN } from "./axesForDomain";
 import { BASE_KNOWLEDGE } from "./baseKnowledge";
 import { SCENE_SEED_A } from "./sceneSeeds";
 
@@ -66,14 +67,6 @@ const RANK_BANK: Record<number, string> = {
 
 const EXPERT_REFERRAL =
   "다섯 영역 모두 에너지가 많이 소진된 상태로 보여요. 이 테스트는 진단이 아니지만, 이렇게 여러 영역이 동시에 무거울 때는 혼자 붙잡고 있기보다 가까운 상담 전문가나 정신건강의학과 전문의와 이야기 나눠보시는 것도 좋은 방법이 될 수 있어요.";
-
-const AXES_FOR_DOMAIN: Record<AxisKey, FactorKey[]> = {
-  CAR: ["job_fit", "meaning", "competence_cw"],
-  LOV: ["partner_fit", "attachment", "tension_tol"],
-  REL: ["boundary", "tension_tol", "approval_cw"],
-  SLF: ["global_worth", "competence_cw", "approval_cw"],
-  DIR: ["values", "meaning"],
-};
 
 // 2026-09-30: 예전엔 "확정 영역만 3.00점 미만일 수 있다"고 가정하고 isConfirmedLowest로
 // 분기했는데, 동점·all_high 화면에서 사용자가 "다른 영역이에요"/"기타"로 수학적 최저점이

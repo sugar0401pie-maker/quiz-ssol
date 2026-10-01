@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DESSERT, type AxisKey, type ModeKey, type TypeCode } from "@/lib/data";
+import { DESSERT, GENDER_TITLE, type AxisKey, type Gender, type ModeKey, type TypeCode } from "@/lib/data";
 import { buildReportEmailHtml } from "@/lib/reportV3/emailHtml";
 import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -51,12 +51,25 @@ export async function POST(req: Request) {
   const { data: report } = await admin.from("ssol_reports").select("assembled").eq("order_id", order.id).maybeSingle();
   if (!report?.assembled) return NextResponse.json({ error: "report not ready" }, { status: 409 });
 
-  const { data: result } = await admin.from("ssol_quiz_results").select("type_key, axis_scores").eq("id", resultId).single();
+  const { data: result } = await admin
+    .from("ssol_quiz_results")
+    .select("type_key, axis_scores, factor_scores, user_name, gender")
+    .eq("id", resultId)
+    .single();
   if (!result) return NextResponse.json({ error: "result not found" }, { status: 404 });
 
   const typeCode = result.type_key as TypeCode;
   const [confirmedAxis] = typeCode.split("-") as [AxisKey, ModeKey];
-  const html = buildReportEmailHtml(typeCode, confirmedAxis, result.axis_scores, report.assembled as GeneratedSectionsV3);
+  const title = result.gender ? GENDER_TITLE[result.gender as Gender] : "";
+  const html = buildReportEmailHtml(
+    typeCode,
+    confirmedAxis,
+    result.axis_scores,
+    result.factor_scores,
+    result.user_name,
+    title,
+    report.assembled as GeneratedSectionsV3
+  );
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

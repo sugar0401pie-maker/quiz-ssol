@@ -1,7 +1,8 @@
 import "server-only";
-import { AXIS_KR, DESSERT, type AxisKey, type TypeCode } from "../data";
+import { AXIS_KR, DESSERT, type AxisKey, type FactorKey, type TypeCode } from "../data";
 import { resolveIconKey } from "../icons";
 import { EUL_REUL } from "../josa";
+import { buildAverageComparisonText } from "./averageComparison";
 import { splitBoldParagraph } from "./boldParagraph";
 import type { GeneratedSectionsV3 } from "./types";
 import { leadInIndexFor } from "./uiSections";
@@ -19,6 +20,13 @@ export const SITE_ORIGIN = "https://quiz.ssolwellnesshouse.com";
 function radarImageUrl(scores: Record<AxisKey, number>): string {
   const qs = (Object.entries(scores) as [AxisKey, number][]).map(([k, v]) => `${k}=${v}`).join("&");
   return `${SITE_ORIGIN}/api/report/radar-image?${qs}`;
+}
+
+// 2026-10-01: 하위요인 편차 차트(app/api/report/deviation-image/route.ts)도 같은 이유로
+// 이메일에서는 PNG로 구워서 넣습니다.
+function deviationImageUrl(factorScores: Record<FactorKey, number>, label: string): string {
+  const qs = (Object.entries(factorScores) as [FactorKey, number][]).map(([k, v]) => `${k}=${v}`).join("&");
+  return `${SITE_ORIGIN}/api/report/deviation-image?${qs}&label=${encodeURIComponent(label)}`;
 }
 
 const SECTION_KEYS = ["section1", "section2", "section3", "section4", "section5", "section6", "section7", "section8"] as const;
@@ -76,6 +84,9 @@ export function buildReportEmailHtml(
   typeCode: TypeCode,
   confirmedAxis: AxisKey,
   axisScores: Record<AxisKey, number>,
+  factorScores: Record<FactorKey, number>,
+  userName: string,
+  title: string,
   assembled: GeneratedSectionsV3
 ): string {
   const dessert = DESSERT[typeCode];
@@ -97,10 +108,23 @@ export function buildReportEmailHtml(
     <h1 style="font-size:20px;margin:0 0 12px;color:${COLOR_INK};">${esc(dessert.name)}의 웰니스 이야기</h1>
     <img src="${radarImageUrl(axisScores)}" alt="다섯 영역 오각형 그래프" width="295" height="195" style="width:295px;max-width:100%;display:block;margin:0 auto;" />
   </div>`;
-  SECTION_KEYS.forEach((key, idx) => {
+  body += renderSectionCard(1, titles.section1, assembled.section1 ?? [], leadInIndexFor("section1", assembled.section1 ?? []), false);
+
+  // 2026-10-01: 심층보고서 결제자 전용 "전체 유형 평균 대비" 블록 — 섹션 1 바로 아래,
+  // 섹션 2가 시작되기 전에 넣습니다(화면 app/result/report/view/page.tsx와 같은 위치).
+  const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, axisKR, dessert.name);
+  const comparisonParas = [...comparison.intro, ...comparison.deviationNote]
+    .map((p) => renderParagraph(p, false))
+    .join("");
+  body += `<div style="margin:0 0 14px;">
+    ${comparisonParas}
+    <img src="${deviationImageUrl(factorScores, `나의 점수(${esc(dessert.name)})`)}" alt="하위요인별 평균 대비 내 위치 그래프" width="700" style="width:100%;max-width:700px;display:block;margin:4px auto 0;" />
+  </div>`;
+
+  SECTION_KEYS.filter((key) => key !== "section1").forEach((key, idx) => {
     const paragraphs = assembled[key] ?? [];
     const leadInIdx = leadInIndexFor(key, paragraphs);
-    body += renderSectionCard(idx + 1, titles[key], paragraphs, leadInIdx, key === "section8");
+    body += renderSectionCard(idx + 2, titles[key], paragraphs, leadInIdx, key === "section8");
   });
   return body;
 }

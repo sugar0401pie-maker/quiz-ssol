@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { ReportParagraph } from "@/components/ReportParagraph";
 import { ReportSectionCard } from "@/components/ReportSectionCard";
+import SubfactorDeviationChart from "@/components/SubfactorDeviationChart";
 import { useQuiz } from "@/lib/QuizContext";
-import { DESSERT } from "@/lib/data";
+import { AXIS_KR, DESSERT } from "@/lib/data";
+import { buildAverageComparisonText } from "@/lib/reportV3/averageComparison";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
 import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
 import { leadInIndexFor, SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
@@ -26,7 +28,7 @@ export const dynamic = "force-dynamic";
 // 스스로 한 번 확인해서, 준비 안 됐으면 /result/report로 돌려보냅니다.
 export default function ReportViewPage() {
   const router = useRouter();
-  const { result, savedResultId, setSavedResultId, userName, userGender } = useQuiz();
+  const { result, savedResultId, setSavedResultId, userName, userGender, title } = useQuiz();
   const [toast, setToast] = useState("");
   const [assembled, setAssembled] = useState<GeneratedSectionsV3 | null>(null);
   const [checked, setChecked] = useState(false);
@@ -69,9 +71,10 @@ export default function ReportViewPage() {
   }, [savedResultId]);
 
   if (!result || !checked || !assembled) return null;
-  const { typeCode, confirmedAxis, axisScores } = result;
+  const { typeCode, confirmedAxis, axisScores, factorScores } = result;
   const dessert = DESSERT[typeCode];
   const { sectionTitle3, sectionTitle4, sectionTitle5 } = sectionTitlesForAxis(confirmedAxis);
+  const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, AXIS_KR[confirmedAxis], dessert.name);
 
   const handleSaveResult = async () => {
     setBusy(true);
@@ -130,6 +133,16 @@ export default function ReportViewPage() {
       {assembled.section1.map((p, i) => (
         <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
+
+      <div style={{ marginTop: 24 }}>
+        {comparison.intro.map((p, i) => (
+          <ReportParagraph key={i} text={p} className="type-blurb" />
+        ))}
+        <SubfactorDeviationChart individual={factorScores} indLabel={`나의 점수(${dessert.name})`} />
+        {comparison.deviationNote.map((p, i) => (
+          <ReportParagraph key={i} text={p} className="type-blurb" />
+        ))}
+      </div>
 
       <p className="muted" style={{ margin: "20px 0" }}>
         아래 항목을 눌러 펼쳐보세요.
