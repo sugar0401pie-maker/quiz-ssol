@@ -10,6 +10,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // lib/reportV3/generateOrGet.ts를 씁니다 — 가짜 데이터가 아니라 진짜 AI가 생성한 리포트입니다.
 export const maxDuration = 300;
 
+// ssol_orders.amount는 0보다 커야 한다는 체크 제약이 있어(실제 결제 금액 기록용), 관리자
+// 지급 주문도 정가를 그대로 기록합니다(app/api/orders/route.ts의 REPORT_PRICE와 동일) —
+// 실제로 결제가 일어나는 건 아니고, 이 레코드는 Toss를 거치지 않았다는 점을 status나 별도
+// 구분 없이 그냥 "paid" 레코드로 남깁니다(이 엔드포인트 자체가 관리자 비밀값으로만 호출
+// 가능하니, 호출 이력 자체가 "관리자가 지급했다"는 근거입니다).
+const REPORT_PRICE = 3500;
+
 export async function POST(req: Request) {
   const secret = req.headers.get("x-admin-secret");
   if (!secret || secret !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -54,7 +61,7 @@ export async function POST(req: Request) {
         order_id: `ssol_admingrant_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`,
         user_id: result.user_id,
         result_id: resultId,
-        amount: 0,
+        amount: REPORT_PRICE,
         status: "paid",
         report_kind: "solo",
       })
