@@ -138,7 +138,7 @@ button:active { transform: scale(0.98); }
   background: transparent; border: none; overflow: hidden;
 }
 .res-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.type-reveal { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 4px; line-height: 1.4; }
+.type-reveal { font-size: 20px; font-weight: 700; color: var(--ink); margin: 0 0 4px; line-height: 1.4; }
 .type-name-inline { font-family: var(--font-gaegu), "Gaegu", sans-serif; color: var(--navy); font-size: 1.15em; }
 .res-code { font-size: 12.5px; color: var(--text2); line-height: 1.5; margin: 0 0 18px; padding-left: 14px; position: relative; }
 .res-code::before { content: "•"; position: absolute; left: 0; color: var(--navy); }
@@ -153,8 +153,8 @@ button:active { transform: scale(0.98); }
   transform: translate(-50%, -125%); z-index: 5; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .cta { background: var(--navy); border-radius: 20px; padding: 18px 20px; margin-top: 8px; }
-.cta p { color: var(--sky-bg); }
-.cta .cta-title { color: var(--white); font-weight: 700; font-size: 13.5px; line-height: 1.4; margin-bottom: 4px; }
+.cta p { color: var(--sky-bg); font-size: 15px; line-height: 1.6; }
+.cta .cta-title { color: var(--white); font-weight: 700; font-size: 15px; line-height: 1.4; margin-bottom: 4px; }
 .cta button { background: var(--white); color: var(--navy); border-color: var(--white); margin-top: 10px; }
 /* 2026-09-28: 심층 리포트 생성 대기 문구 — 움직이는 점(....) 대신, 문장 전체가 반투명해졌다가
    다시 진해지기를 반복하는 형태로 "쓰는 중"임을 보여줍니다. */
@@ -169,7 +169,7 @@ button:active { transform: scale(0.98); }
 .section8-highlight {
   border: 1.5px solid var(--navy); border-radius: 14px; padding: 14px 16px; margin: 4px 0 20px;
 }
-.section8-highlight p { margin: 0; color: var(--ink); font-weight: 700; }
+.section8-highlight p { margin: 0; color: var(--ink); font-weight: 700; font-size: 15px; line-height: 1.7; }
 .text-link {
   background: none; border: none; padding: 0; margin: 0; width: auto; display: inline;
   font-size: 12.5px; color: var(--text3); text-decoration: underline; cursor: pointer;
@@ -233,7 +233,7 @@ button:active { transform: scale(0.98); }
 /* 2026-09-28: "에스프레소 브라우니"처럼 긴 이름이 음절 중간(예: "브라우"/"니")에서 잘려
    줄바꿈되던 문제 — 한글 기본 줄바꿈 규칙은 글자 단위로 끊기 쉬워서, 공백이 있는 자리
    (단어 경계)에서만 줄을 바꾸도록 word-break: keep-all을 추가했습니다. */
-.match-name { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 4px; font-family: var(--font-gaegu), "Gaegu", sans-serif; word-break: keep-all; }
+.match-name { font-size: 21px; font-weight: 700; color: var(--navy); margin: 0 0 4px; font-family: var(--font-gaegu), "Gaegu", sans-serif; word-break: keep-all; }
 .match-desc { font-size: 13.5px; color: var(--text2); line-height: 1.6; margin: 0 0 6px; }
 .match-desc:last-child { margin-bottom: 0; }
 
