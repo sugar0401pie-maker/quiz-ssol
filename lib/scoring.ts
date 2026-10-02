@@ -22,11 +22,12 @@ export function mean(xs: number[]): number {
 export function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
-// 2026-09-29: 규칙 갱신 — 기본은 소수 둘째 자리까지 쓰되, 뒤에 붙는 불필요한 0은 자릅니다.
-// 예: 5.00 → "5", 5.50 → "5.5", 3.33은 그대로 "3.33". "점"을 붙이지 않고 숫자만 반환 —
-// 호출부에서 그동안 해온 대로 "점"을 붙입니다.
+// 2026-10-02 규칙 갱신(JunSeok 인계서 표기 통일 — "4.0점, 3.8점"처럼 소수 첫째 자리로
+// 고정): 예전엔 둘째 자리까지 쓰고 뒤의 0을 잘라서 "5.00→5", "3.33→3.33"처럼 자릿수가
+// 들쭉날쭉했는데, 이제 항상 소수 첫째 자리 하나만 보여줍니다(5.0, 3.3, 3.8). "점"을 붙이지
+// 않고 숫자만 반환 — 호출부에서 그동안 해온 대로 "점"을 붙입니다.
 export function fmtScore(x: number): string {
-  return x.toFixed(2).replace(/\.?0+$/, "");
+  return x.toFixed(1);
 }
 
 export type Part1Answers = Record<string, number>; // {P01: 1..5, ...}

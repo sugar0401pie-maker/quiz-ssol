@@ -51,7 +51,8 @@ export const PART1_ITEMS: Record<string, Part1Item> = {
   P13: { factor: "meaning", t: "하루하루가 의미 있게 느껴지곤 한다." },
   P14: { factor: "meaning", t: "지금 하고 있는 일이 결국 무엇을 위한 건지 잘 모르겠다." },
   P15: { factor: "tension_tol", t: "관계에서 애매한 감정이 남아있으면 그게 풀리기 전까지는 집중이 잘 안 된다." },
-  P16: { factor: "tension_tol", t: "상대와 다투고, 완전히 풀지 못한 채여도 이를 모른 척 하고 함께 대화할 수 있다." },
+  // 2026-10-02: JunSeok 인계서(3-2)가 명시적으로 요청한 문구 교체.
+  P16: { factor: "tension_tol", t: "상대와 다투고 완전히 풀지 못한 채여도 감정을 잠시 접어두고 함께 활동할 수 있다." },
   P17: { factor: "competence_cw", t: "내 기준만큼 일을 해내지 못하는 사람을 보면 유독 답답하거나 화가 난다." },
   P18: { factor: "competence_cw", t: "원했던 성과를 달성하지 못하면 내 가치가 낮아지는 것 같다." },
   P19: { factor: "approval_cw", t: "직장 동료나 친구들이 나를 어떻게 생각하는지에 따라 기분이 흔들리는 편이다." },
@@ -159,9 +160,12 @@ export const MODE_CODE: Record<ModeKey, string> = { primary: "용기형", second
 // ============================================================
 // 확인 화면 문구 (4.4, 원문 그대로)
 // ============================================================
-export const AXIS_CONFIRM_SINGLE = (axisKR: string) => `요즘 가장 에너지가 필요한 영역은 ${axisKR}인 것 같아요. 맞나요?`;
+// 2026-10-02: JunSeok 인계서 — "에너지가 필요한"(결핍 프레이밍) → "마음이 쓰이는"(관심
+// 프레이밍)으로 교체. 1부는 '고민의 크기'가 아니라 '얼마나 채워져 있는지'를 재는 것이라,
+// 점수가 낮아도 지금 마음이 안 쓰이는 영역일 수 있다는 게 이유.
+export const AXIS_CONFIRM_SINGLE = (axisKR: string) => `요즘 가장 마음이 쓰이는 영역은 ${axisKR}인 것 같아요. 맞나요?`;
 export const AXIS_CONFIRM_TIE = (aKR: string, bKR: string) =>
-  `${aKR}와 ${bKR}가 비슷하게 에너지가 필요해 보여요. 지금 더 마음이 쓰이는 쪽은?`;
+  `${aKR}와 ${bKR}가 비슷하게 마음이 쓰이는 것 같아요. 그래도 지금 더 신경 쓰이는 쪽은?`;
 export const AXIS_CONFIRM_ALL_HIGH = "모든 영역이 비교적 잘 채워져 있어요. 그래도 요즘 하나를 더 살펴본다면?";
 export const MODE_CONFIRM_QUESTION = "이 고민 앞에서 나에게 더 가까운 쪽은?";
 export const MODE_CONFIRM_OPTIONS: Record<ModeKey, string> = {
@@ -192,12 +196,14 @@ export const TYPE_LINE2: Record<TypeCode, string> = {
   "DIR-secondary": "방향이 불확실할 땐 상황을 다른 시선으로 바라봐요.",
   "DIR-disengage": "방향을 하나로 정하지 않고 흘러가는 대로 두는 편이에요.",
 };
+// 2026-10-02: "에너지가 필요한"(결핍 프레이밍) → "마음이 쓰이는"(관심 프레이밍)으로 교체
+// (JunSeok 인계서, AXIS_CONFIRM_SINGLE과 같은 이유).
 export const TYPE_LINE1: Record<AxisKey, string> = {
-  CAR: "요즘 가장 에너지가 필요한 영역은 일과 진로예요.",
-  LOV: "요즘 가장 에너지가 필요한 영역은 연애예요.",
-  REL: "요즘 가장 에너지가 필요한 영역은 주변 사람들과의 관계예요.",
-  SLF: "요즘 가장 에너지가 필요한 영역은 자기예요.",
-  DIR: "요즘 가장 에너지가 필요한 영역은 인생이에요.",
+  CAR: "요즘 가장 마음이 쓰이는 영역은 일과 진로예요.",
+  LOV: "요즘 가장 마음이 쓰이는 영역은 연애예요.",
+  REL: "요즘 가장 마음이 쓰이는 영역은 주변 사람들과의 관계예요.",
+  SLF: "요즘 가장 마음이 쓰이는 영역은 자기예요.",
+  DIR: "요즘 가장 마음이 쓰이는 영역은 인생이에요.",
 };
 
 // 2026-09-25: 결과 화면 "당신은 이런 사람일거에요"를 5줄로 늘려달라는 요청 — TYPE_LINE1·TYPE_LINE2에

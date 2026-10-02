@@ -346,7 +346,7 @@ export default function ResultPage() {
           <p className="type-blurb" style={{ marginTop: -10 }}>
             {AXIS_KR[strongest]} 영역은 지금 가장 안정적으로 채워져 있어서, 큰 걱정 없이 잘 흘러가고 있어요.
             <br />
-            {AXIS_KR[weakest]} 영역은 요즘 마음이 자주 향하는 곳이라, 조금 더 관심과 에너지가 필요해 보여요.
+            {AXIS_KR[weakest]} 영역은 요즘 가장 마음이 쓰이는 곳이에요.
           </p>
         );
       })()}
