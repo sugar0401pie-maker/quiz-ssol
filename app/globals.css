@@ -85,6 +85,12 @@ button {
 }
 button.secondary { background: transparent; color: var(--navy); border: 1px solid var(--sky); }
 button.btn-lg { font-size: 19px; padding: 15px 20px; }
+/* 버튼처럼 보이지만 실제로는 하이퍼링크(<a>)인 큰 버튼 */
+a.link-btn-lg {
+  display: block; box-sizing: border-box; text-align: center; text-decoration: none;
+  font-family: var(--font-noto), "Noto Sans KR", sans-serif; font-weight: 700; font-size: 17px; border-radius: 20px;
+  border: 1px solid var(--navy); background: var(--navy); color: var(--white); padding: 15px 20px;
+}
 button:active { transform: scale(0.98); }
 .field-label { font-size: 13px; color: var(--text2); font-weight: 600; margin: 18px 0 8px; }
 .text-input {

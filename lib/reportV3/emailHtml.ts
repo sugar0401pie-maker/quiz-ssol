@@ -142,7 +142,7 @@ export function buildReportEmailHtml(
   // 같은 이름·같은 주소입니다. 이메일은 CSS 변수·버튼 요소를 믿을 수 없어서 인라인 스타일 링크로 만듭니다.
   body += `<div style="text-align:center;margin:24px 0 8px;">
     <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:${COLOR_INK};">테스트하실 때 가입하신 계정으로 쏘웰라를 그대로 이용하실 수 있어요.</p>
-    <a href="${SOWELLA_URL}" target="_blank" style="display:inline-block;background:${COLOR_ACCENT};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">웰니스 채팅 ‘쏘웰라’ 이용하기</a>
+    <a href="${SOWELLA_URL}" target="_blank" style="display:inline-block;background:${COLOR_ACCENT};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">AI 기반 웰니스 채팅 쏘웰라로 이동하기</a>
   </div>`;
   return body;
 }

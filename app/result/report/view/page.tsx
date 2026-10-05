@@ -15,8 +15,6 @@ import { leadInIndexFor, SECTION_TITLES, sectionTitlesForAxis } from "@/lib/repo
 import { createClient } from "@/lib/supabase/client";
 
 const SOWELLA_URL = "https://app.ssolwellnesshouse.com";
-const SOWELLA_MESSAGE =
-  "반갑습니다! 쏘웰라입니다. 테스트하실 때 가입하신 계정 아이디와 비밀번호로 쏘웰라 서비스를 그대로 이용할 수 있어요.";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
@@ -108,13 +106,6 @@ export default function ReportViewPage() {
     setToast(res.ok ? `${mailAddr.trim()}(으)로 보냈어요.` : "메일 발송에 실패했어요. 잠시 후 다시 시도해주세요.");
   };
 
-  const goSowella = () => {
-    setToast(SOWELLA_MESSAGE);
-    setTimeout(() => {
-      window.location.href = SOWELLA_URL;
-    }, 1800);
-  };
-
   return (
     <div className="card">
       <button
@@ -188,9 +179,13 @@ export default function ReportViewPage() {
             메일로 보내기
           </button>
         </div>
-        <button className="btn-lg report-actions-sowella" onClick={goSowella}>
-          웰니스 채팅 &lsquo;쏘웰라&rsquo; 이용하기
-        </button>
+        {/* 2026-10-05: 토스트 후 이동하던 버튼을 바로 가는 하이퍼링크로 바꿈(요청). 안내 문구는 링크 위에 상시 표시. */}
+        <p className="tiny" style={{ textAlign: "center", margin: "4px 0 8px" }}>
+          테스트하실 때 가입하신 계정으로 쏘웰라를 그대로 이용하실 수 있어요.
+        </p>
+        <a className="link-btn-lg report-actions-sowella" href={SOWELLA_URL}>
+          AI 기반 웰니스 채팅 쏘웰라로 이동하기
+        </a>
       </div>
 
       {mailOpen && (

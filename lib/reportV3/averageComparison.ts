@@ -25,6 +25,20 @@ import { FACTOR_AVERAGE_V1 } from "./factorAverages";
 
 const DEVIATION_THRESHOLD = 0.8; // 이 이상 벌어지면 "많이 차이난다"로 취급
 
+// 하위요인이 평균보다 낮게/높게 나왔을 때 각각 무슨 뜻인지(JunSeok S2_LEAD의 낮은 쪽 문장과 같은 결).
+const FACTOR_DIRECTION_MEANING: Record<FactorKey, { low: string; high: string }> = {
+  job_fit: { low: "지금 하는 일이 나와 맞는지 확신이 덜한 편이라는 뜻이에요.", high: "지금 하는 일이 나와 잘 맞는다고 느끼는 편이라는 뜻이에요." },
+  partner_fit: { low: "앞으로의 연애에 기대보다 물음표가 더 큰 편이라는 뜻이에요.", high: "앞으로의 연애에 기대가 크고 어떤 상대가 맞는지도 비교적 분명한 편이라는 뜻이에요." },
+  attachment: { low: "연애에서 마음을 내려놓고 기대는 일이 조금 더 조심스러운 편이라는 뜻이에요.", high: "연애에서 마음을 열고 기대는 일이 비교적 편안한 편이라는 뜻이에요." },
+  boundary: { low: "관계에서 내 선을 지키는 일이 조금 더 버거운 편이라는 뜻이에요.", high: "관계에서 내 선을 지키고 거절하는 일이 비교적 편안한 편이라는 뜻이에요." },
+  global_worth: { low: "조건과 상관없이 나를 괜찮게 느끼는 바탕이 조금 더 옅은 편이라는 뜻이에요.", high: "조건과 상관없이 나를 괜찮게 느끼는 바탕이 비교적 두터운 편이라는 뜻이에요." },
+  values: { low: "내게 중요한 것과 선택의 기준이 아직 덜 선명한 편이라는 뜻이에요.", high: "내게 중요한 것과 선택의 기준이 비교적 선명한 편이라는 뜻이에요." },
+  meaning: { low: "하루와 지금 하는 일에서 의미를 느끼기가 조금 더 어려운 편이라는 뜻이에요.", high: "하루와 지금 하는 일에서 의미를 비교적 잘 느끼는 편이라는 뜻이에요." },
+  tension_tol: { low: "관계에 풀리지 않은 감정이 남으면 평소처럼 지내기가 조금 더 어려운 편이라는 뜻이에요.", high: "관계에 풀리지 않은 감정이 남아도 평소처럼 지내기가 비교적 수월한 편이라는 뜻이에요." },
+  competence_cw: { low: "얼마나 잘 해냈는지가 나를 평가하는 잣대와 가깝게 붙어 있는 편이라는 뜻이에요.", high: "얼마나 잘 해냈는지와 나를 평가하는 잣대가 비교적 떨어져 있는 편이라는 뜻이에요." },
+  approval_cw: { low: "다른 사람의 반응이 내가 나를 바라보는 방식에 영향을 많이 주는 편이라는 뜻이에요.", high: "다른 사람의 반응에도 내가 나를 바라보는 방식이 비교적 덜 흔들리는 편이라는 뜻이에요." },
+};
+
 export interface AverageComparisonResult {
   /** 그래프 위에 들어가는 설명 문단(항상 포함). */
   intro: string[];
@@ -56,16 +70,30 @@ export function buildAverageComparisonText(
     `이 그래프는 ${nickname}님이 왜 ${dessertName} 유형으로 나왔는지를 설명해주는 그래프이기도 해요. ${dessertName} 유형은 ${leadLabel}${I_GA(leadLabel)} 전체 평균보다 ${leadDirectionAdj} 편인데, 바로 이 지점이 ${axisKR}${EUL_REUL(axisKR)} 가장 신경 쓰이는 영역으로 확정하게 된 이유예요.`,
   ];
 
-  if (Math.abs(leadDiff) < DEVIATION_THRESHOLD) {
-    return { intro, deviationNote: [] };
-  }
+  // 2026-10-05: 주도요인 한 줄뿐이던 말머리를 "평균과 가장 다르게 나온 지점 1~2개"까지 늘리고,
+  // "좋고 나쁨이 아니라 ○○님만의 특징" 마무리 문장은 말머리들 뒤에 한 번만 나오도록 뺐다.
+  // 각 줄은 어느 쪽으로 다른지(낮게/높게)에 맞는 뜻 풀이를 붙인다 — 같은 요인이라도 점수가 높을 때와
+  // 낮을 때 뜻이 반대라서(특히 유능함·인정 기반은 점수가 높을수록 조건에 덜 묶인다는 뜻) 방향을 꼭 구분한다.
+  const bullet = (f: FactorKey, diff: number) => {
+    const label = FACTOR_KR[f];
+    const dir = diff < 0 ? "낮게" : "높게";
+    const meaning = FACTOR_DIRECTION_MEANING[f][diff < 0 ? "low" : "high"];
+    return `• ${label}${I_GA(label)} 전체 평균보다 ${fmtScore(Math.abs(diff))}점 더 ${dir} 나타나요. ${meaning}`;
+  };
 
-  const direction = leadDiff < 0 ? "낮게" : "높게";
-  const diffText = fmtScore(Math.abs(leadDiff));
+  const notes: string[] = [];
+  if (Math.abs(leadDiff) >= DEVIATION_THRESHOLD) notes.push(bullet(leadFactor, leadDiff));
+  const others = (Object.keys(factorScores) as FactorKey[])
+    .filter((f) => f !== leadFactor)
+    .map((f) => ({ f, diff: factorScores[f] - FACTOR_AVERAGE_V1[f] }))
+    .filter(({ diff }) => Math.abs(diff) >= DEVIATION_THRESHOLD)
+    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+    .slice(0, 2);
+  others.forEach(({ f, diff }) => notes.push(bullet(f, diff)));
 
-  const deviationNote = [
-    `• ${leadLabel}${I_GA(leadLabel)} 전체 평균보다 ${diffText}점 더 ${direction} 나타나요. 다른 하위요인보다 이 부분에서 평균과 가장 다른 결을 보이고 있다는 뜻이에요. 이번에도 마찬가지로 좋고 나쁨이 아니라 ${nickname}님만의 특징으로 봐주시면 됩니다.`,
-  ];
+  const deviationNote = notes.length
+    ? [...notes, `이번에도 마찬가지로 좋고 나쁨이 아니라 ${nickname}님만의 특징으로 봐주시면 됩니다.`]
+    : [];
 
   return { intro, deviationNote };
 }
