@@ -1,5 +1,5 @@
-import { FACTOR_KR, type FactorKey } from "@/lib/data";
-import { FACTOR_AVERAGE_V1, FACTOR_DISPLAY_ORDER } from "@/lib/reportV3/factorAverages";
+import type { FactorKey } from "@/lib/data";
+import { FACTOR_AVERAGE_V1, FACTOR_CHART_LABEL, FACTOR_DISPLAY_ORDER } from "@/lib/reportV3/factorAverages";
 
 // 2026-10-01: "전체 유형 평균 대비 차이_심층보고서용 그래프" 전달 문서 기준 덤벨 차트.
 // 외부 라이브러리 없이 순수 SVG로 그립니다(RadarChart.tsx와 같은 방식). 디자인 스펙(트랙
@@ -47,7 +47,7 @@ export default function SubfactorDeviationChart({
           const indX = scoreToX(individual[f]);
           return (
             <g key={f}>
-              <text x={LABEL_X} y={y + 6} textAnchor="end" fontSize={13} fill="var(--ink)">{FACTOR_KR[f]}</text>
+              <text x={LABEL_X} y={y + 6} textAnchor="end" fontSize={13} fill="var(--ink)">{FACTOR_CHART_LABEL[f]}</text>
               <line x1={TRACK_X0} y1={y} x2={TRACK_X1} y2={y} stroke="var(--border)" strokeWidth={1} />
               <line x1={Math.min(avgX, indX)} y1={y} x2={Math.max(avgX, indX)} y2={y} stroke={COLOR_IND} strokeWidth={3} opacity={0.4} />
               <circle cx={avgX} cy={y} r={5} fill={COLOR_AVG} />

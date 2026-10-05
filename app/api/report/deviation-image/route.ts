@@ -1,7 +1,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import path from "path";
-import { FACTOR_KR, type FactorKey } from "@/lib/data";
-import { FACTOR_AVERAGE_V1, FACTOR_DISPLAY_ORDER } from "@/lib/reportV3/factorAverages";
+import type { FactorKey } from "@/lib/data";
+import { FACTOR_AVERAGE_V1, FACTOR_CHART_LABEL, FACTOR_DISPLAY_ORDER } from "@/lib/reportV3/factorAverages";
 
 // 2026-10-01: radar-image/route.ts와 같은 이유로 존재합니다 — 이메일 클라이언트(특히 Gmail)는
 // 인라인 <svg>를 신뢰할 수 없게 처리해서, 하위요인 편차 차트도 resvg로 PNG를 구워 <img>로
@@ -39,7 +39,7 @@ function buildSvg(individual: Record<FactorKey, number>, indLabel: string): stri
     const avgX = scoreToX(FACTOR_AVERAGE_V1[f]);
     const indX = scoreToX(individual[f]);
     return `<g>
-      <text x="${LABEL_X}" y="${y + 6}" text-anchor="end" font-size="13" fill="${COLOR_INK}" font-family="Noto Sans KR">${FACTOR_KR[f]}</text>
+      <text x="${LABEL_X}" y="${y + 6}" text-anchor="end" font-size="13" fill="${COLOR_INK}" font-family="Noto Sans KR">${FACTOR_CHART_LABEL[f]}</text>
       <line x1="${TRACK_X0}" y1="${y}" x2="${TRACK_X1}" y2="${y}" stroke="${COLOR_BORDER}" stroke-width="1"/>
       <line x1="${Math.min(avgX, indX)}" y1="${y}" x2="${Math.max(avgX, indX)}" y2="${y}" stroke="${COLOR_IND}" stroke-width="3" opacity="0.4"/>
       <circle cx="${avgX}" cy="${y}" r="5" fill="${COLOR_AVG}"/>
