@@ -80,6 +80,14 @@ function renderSectionCard(num: number, title: string, paragraphs: string[], lea
   </div>`;
 }
 
+// 2026-10-05: 메일 제목을 "{닉네임} {호칭}님의 심층 웰니스 리포트가 도착했습니다!"로 변경.
+// 결제 직후 자동 발송(app/api/report/send-email)과 관리자 재발송(app/api/admin/resend-report-email)이
+// 같은 제목을 쓰도록 여기 한 곳에서 만듭니다. 호칭이 없으면(성별 값이 비어있는 옛 데이터) "{닉네임}님"만 씁니다.
+export function reportEmailSubject(userName: string, title: string): string {
+  const who = title ? `${userName} ${title}님` : `${userName}님`;
+  return `${who}의 심층 웰니스 리포트가 도착했습니다!`;
+}
+
 export function buildReportEmailHtml(
   typeCode: TypeCode,
   confirmedAxis: AxisKey,

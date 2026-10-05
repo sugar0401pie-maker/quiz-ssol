@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { DESSERT, GENDER_TITLE, type AxisKey, type Gender, type ModeKey, type TypeCode } from "@/lib/data";
-import { buildReportEmailHtml } from "@/lib/reportV3/emailHtml";
+import { GENDER_TITLE, type AxisKey, type Gender, type ModeKey, type TypeCode } from "@/lib/data";
+import { buildReportEmailHtml, reportEmailSubject } from "@/lib/reportV3/emailHtml";
 import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     body: JSON.stringify({
       from: FROM_ADDRESS,
       to: [email],
-      subject: `${DESSERT[typeCode].name} 심층 웰니스 리포트`,
+      subject: reportEmailSubject(result.user_name, title),
       html,
     }),
   });
