@@ -1,5 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
+import { buildJunseokDraft, enforceJunseokDraft } from "./junseokDraft";
 import { normalizeBulletParagraphBreaks, splitIntoParagraphs } from "../paragraphSplit";
 import { buildSystemPrompt, buildUserPrompt, type ReportV3Input } from "./prompt";
 import { assembleSection6Relationships } from "./section6Assembler";
@@ -88,7 +89,10 @@ async function callModel(input: ReportV3Input): Promise<Omit<GeneratedSectionsV3
       max_output_tokens: 25000,
     });
     const text = res.output_text ?? "";
-    const parsed = parseSections(text);
+    const parsedRaw = parseSections(text);
+    const enforced = enforceJunseokDraft(parsedRaw, buildJunseokDraft(input));
+    enforced.reports.forEach((r) => console.log(`[junseok-first] ${r.block}: 문장 ${r.retained}/${r.total} 그대로 유지${r.insertedWhole ? " → 서버가 문단 통째로 삽입" : ""}`));
+    const parsed = { ...parsedRaw, section3: enforced.sections.section3, section7: enforced.sections.section7 };
     if (res.status === "incomplete") {
       console.error("심층 리포트 생성이 잘렸어요:", res.incomplete_details?.reason);
       lastSections = parsed; // 잘렸어도 재시도까지 실패하면 최소한 이거라도 씁니다.
