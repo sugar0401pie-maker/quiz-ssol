@@ -26,6 +26,7 @@ import {
 } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
 import { splitIntoParagraphs } from "@/lib/paragraphSplit";
+import { REPORT_PRICE, formatWon } from "@/lib/pricing";
 import { detectSpecialResult } from "@/lib/scoring";
 import { SPECIAL_RESULTS } from "@/lib/specialResults";
 
@@ -54,6 +55,7 @@ export default function ResultPage() {
   const [toast, setToast] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmOverwrite, setConfirmOverwrite] = useState(false);
+  const [reportCtaCollapsed, setReportCtaCollapsed] = useState(false);
   // 2026-09-25: result가 Context에 없을 때(로그인 직후 리다이렉트, 또는 로그인된 채로 이
   // 페이지를 직접 새로고침/주소창 진입한 경우) 바로 "/"로 튕겨내지 않고, 로그인 여부를 먼저
   // 확인해서 저장된 결과가 있으면 불러옵니다. Context는 메모리 상태라 새로고침하면 비어있는
@@ -396,11 +398,31 @@ export default function ResultPage() {
         다른 유형과 나의 관계는 어떨까?!
       </button>
 
-      <div className="cta">
-        <p className="cta-title">{who}의 이야기, 더 자세하게 알아봐요</p>
-        <p>나는 왜 이렇게 생각할까? 남이 보는 내 모습은 어떨까? 조금 더 구체적인 분석을 통해 {userName}님에 대해 더 자세히 알아보세요.</p>
-        <button onClick={() => router.push("/result/report")}>심층 리포트 보기</button>
-      </div>
+      {reportCtaCollapsed ? (
+        // "다음에 심층 리포트 보기"를 누른 뒤에도 입구를 잃지 않도록, 큰 안내 박스만 접고 한 줄 버튼은 남깁니다.
+        <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={() => router.push("/result/report")}>
+          심층 리포트 보기
+        </button>
+      ) : (
+        <div className="cta">
+          <p className="cta-title">{who}의 이야기, 더 자세하게 알아봐요</p>
+          <p>
+            나는 왜 이렇게 생각할까? 남이 보는 내 모습은 어떨까? 커피 한 잔보다 저렴한 단 돈 {formatWon(REPORT_PRICE)}원으로{" "}
+            {userName}님이 왜 {dessert.name}인지, 다른 유형 대비 두드러지는 강점은 무엇인지 알아보세요. 리포트와 함께 채팅할 수 있는
+            쏘웰라 1주일 체험권도 제공됩니다.
+          </p>
+          <p style={{ fontSize: 13.5, opacity: 0.85 }}>
+            당장 결정하실 필요 없어요! 결제하지 않아도 테스트 세부 결과인 1번 웰니스 프로파일은 무료로 열람하실 수 있어요.
+          </p>
+          <button onClick={() => router.push("/result/report")}>심층 리포트 보기</button>
+          <button
+            style={{ background: "transparent", color: "var(--white)", border: "1px solid rgba(255,255,255,0.55)" }}
+            onClick={() => setReportCtaCollapsed(true)}
+          >
+            다음에 심층 리포트 보기
+          </button>
+        </div>
+      )}
 
       <div className="share-row">
         <button className="secondary" onClick={() => setSheetOpen(true)}>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { startOrGetGeneration } from "@/lib/reportV3/generateOrGet";
+import { REPORT_PRICE } from "@/lib/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // 2026-10-01: 관리자 전용 — 실제 결제 없이 특정 결과(resultId)에 심층 리포트를 내줍니다
@@ -15,7 +16,6 @@ export const maxDuration = 300;
 // 실제로 결제가 일어나는 건 아니고, 이 레코드는 Toss를 거치지 않았다는 점을 status나 별도
 // 구분 없이 그냥 "paid" 레코드로 남깁니다(이 엔드포인트 자체가 관리자 비밀값으로만 호출
 // 가능하니, 호출 이력 자체가 "관리자가 지급했다"는 근거입니다).
-const REPORT_PRICE = 3500;
 
 export async function POST(req: Request) {
   const secret = req.headers.get("x-admin-secret");

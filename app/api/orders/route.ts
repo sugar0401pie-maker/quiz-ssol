@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-const REPORT_PRICE = 3500; // 원. 고정 가격 — 반드시 서버에서 정합니다.
+import { REPORT_PRICE } from "@/lib/pricing"; // 원. 고정 가격 — 반드시 서버에서 정합니다.
 
 // 심층 리포트 결제용 주문 생성. 토스페이먼츠 결제창을 띄우기 직전에 호출합니다.
 // v2: 리포트가 결정론적 조립이라 생활영역 태그 선택 단계가 없습니다 — resultId만 있으면 됩니다.
