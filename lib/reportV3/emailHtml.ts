@@ -113,8 +113,9 @@ export function buildReportEmailHtml(
   // 2026-10-01: 심층보고서 결제자 전용 "전체 유형 평균 대비" 블록 — 섹션 1 바로 아래,
   // 섹션 2가 시작되기 전에 넣습니다(화면 app/result/report/view/page.tsx와 같은 위치).
   const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, axisKR, dessert.name);
+  // intro[0]("~를 전체 유형별 평균과 대비하면 다음과 같습니다.")만 굵게 — 화면(view/page.tsx)과 같게.
   const comparisonParas = [...comparison.intro, ...comparison.deviationNote]
-    .map((p) => renderParagraph(p, false))
+    .map((p, i) => renderParagraph(p, i === 0))
     .join("");
   body += `<div style="margin:0 0 14px;">
     ${comparisonParas}

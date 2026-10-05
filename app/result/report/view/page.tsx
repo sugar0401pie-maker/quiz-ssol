@@ -136,7 +136,7 @@ export default function ReportViewPage() {
 
       <div style={{ marginTop: 24 }}>
         {comparison.intro.map((p, i) => (
-          <ReportParagraph key={i} text={p} className="type-blurb" />
+          <ReportParagraph key={i} text={p} className="type-blurb" boldOnly={i === 0} />
         ))}
         <SubfactorDeviationChart individual={factorScores} indLabel={`나의 점수(${dessert.name})`} />
         {comparison.deviationNote.map((p, i) => (

@@ -10,8 +10,21 @@ import { splitBoldParagraph } from "@/lib/reportV3/boldParagraph";
 // 2026-09-30: 섹션 두괄식 요약 문단(규칙 17)은 패턴이 아니라 "그 섹션의 첫 문단"이라는
 // 위치로 정해지므로, 호출부가 forceBold로 직접 지정합니다. 사장님 피드백 — 이 요약
 // 문장은 볼드뿐 아니라 글자 크기도 다른 문장보다 살짝 크게(.lead-in-summary, globals.css).
-export function ReportParagraph({ text, className, forceBold }: { text: string; className?: string; forceBold?: boolean }) {
-  const { boldText, restText } = splitBoldParagraph(text, forceBold);
+//
+// 2026-10-05: boldOnly — 굵게만 하고 글자 크기는 키우지 않는 지정. "평균과 대비하면 다음과
+// 같습니다" 안내 문장처럼, 요약 문단(.lead-in-summary)은 아니지만 굵게만 보이면 되는 곳용.
+export function ReportParagraph({
+  text,
+  className,
+  forceBold,
+  boldOnly,
+}: {
+  text: string;
+  className?: string;
+  forceBold?: boolean;
+  boldOnly?: boolean;
+}) {
+  const { boldText, restText } = splitBoldParagraph(text, forceBold || boldOnly);
   if (!boldText) return <p className={className}>{text}</p>;
   const cls = forceBold ? [className, "lead-in-summary"].filter(Boolean).join(" ") : className;
   return (
