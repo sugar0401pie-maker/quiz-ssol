@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQuiz } from "@/lib/QuizContext";
-import { AXIS_CONFIRM_ALL_HIGH, AXIS_CONFIRM_SINGLE, AXIS_CONFIRM_TIE, AXIS_KR, AXIS_ORDER, type AxisKey } from "@/lib/data";
+import { AXIS_CONFIRM_ALL_HIGH, AXIS_CONFIRM_HINT, AXIS_CONFIRM_SINGLE, AXIS_CONFIRM_TIE, AXIS_KR, AXIS_ORDER, type AxisKey } from "@/lib/data";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
 export const dynamic = "force-dynamic";
@@ -57,6 +57,9 @@ export default function ConfirmAxisPage() {
       <div className="card">
         <p className="kicker kicker-sm">잠깐 확인할게요</p>
         <h1 className="serif">{AXIS_CONFIRM_SINGLE(AXIS_KR[axis])}</h1>
+        <p className="muted" style={{ marginBottom: 18 }}>
+          {AXIS_CONFIRM_HINT(AXIS_KR[axis])}
+        </p>
         <button className="btn-lg" onClick={() => choose(axis)}>
           맞아요
         </button>

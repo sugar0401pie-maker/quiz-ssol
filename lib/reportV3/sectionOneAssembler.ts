@@ -47,7 +47,8 @@ const MEANING_BANK: Record<AxisKey, string> = {
   DIR: "무엇이 중요한지, 하루가 어떤 방향으로 이어지는지에 대한 감각이 얼마나 선명한지를 보는 영역입니다.",
 };
 
-// 그 영역의 모든 하위요인이 4.00점 이상일 때(전부 튼튼할 때) 쓰는 문장.
+// 특정 하위요인을 짚지 않는 범용 문장. 그 영역의 모든 하위요인이 4.0점 이상일 때, 그리고
+// (2026-10-05부터) 확정 영역이 아니면서 영역 점수가 3.0 이상인 영역에 쓴다.
 const HIGH_SCORE_BANK: Record<AxisKey, string> = {
   CAR: "일하는 동안 '나답다'는 느낌이 드는 날이 많고, 성과가 기대에 못 미쳐도 그 일 하나로 나를 낮게 보지는 않는 편일 수 있어요.",
   LOV: "연락이 늦어지거나 사소하게 어긋나는 일이 있어도 크게 흔들리지 않고, 그 여유가 관계를 편안하게 만들어줄 수 있어요.",
@@ -142,8 +143,16 @@ function buildSectionOneParts(input: SectionOneInput): SectionOneParts {
     for (const f of factors) if (factorScores[f] < factorScores[lowestFactor]) lowestFactor = f;
     const lowestScore = factorScores[lowestFactor];
 
+    // 2026-10-05 (JunSeok 인계서 6장 "고점수 영역에도 최저 하위요인 장면을 붙이던 방식" 정리):
+    // 예전엔 영역 점수와 무관하게 그 안의 최저 하위요인이 4.0 미만이면 항상 "특히 ~이어서"
+    // 장면을 붙여서, 영역 자체는 든든한데(예: 4.0) 하위요인 하나가 3점대라는 이유로 약점처럼
+    // 읽히는 모순이 있었다. 이제 위 scoreStateClause()와 같은 3.0 기준에 맞춰, 확정 영역이거나
+    // 영역 점수 자체가 3.0 미만일 때만 특정 하위요인 장면을 짚는다. 나머지(3.0 이상인 비확정
+    // 영역)는 하위요인을 짚지 않는 범용 문장(HIGH_SCORE_BANK)을 쓴다 — 디테일은 그 영역을 직접
+    // 고른 사람(확정 영역)과 실제로 약한 영역에만 남긴다.
     let bodySentence: string;
-    if (lowestScore < 4.0) {
+    const needsDrilldown = isConfirmed || score < 3.0;
+    if (needsDrilldown && lowestScore < 4.0) {
       const factorKR = FACTOR_KR[lowestFactor];
       bodySentence = `특히 ${factorKR}${I_GA(factorKR)} ${fmtScore(lowestScore)}점이어서, ${SCENE_SEED_A[lowestFactor]}`;
     } else {

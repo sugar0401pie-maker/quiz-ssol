@@ -164,6 +164,10 @@ export const MODE_CODE: Record<ModeKey, string> = { primary: "용기형", second
 // 프레이밍)으로 교체. 1부는 '고민의 크기'가 아니라 '얼마나 채워져 있는지'를 재는 것이라,
 // 점수가 낮아도 지금 마음이 안 쓰이는 영역일 수 있다는 게 이유.
 export const AXIS_CONFIRM_SINGLE = (axisKR: string) => `요즘 가장 마음이 쓰이는 영역은 ${axisKR}인 것 같아요. 맞나요?`;
+// 2026-10-05: 확인 질문 바로 밑 안내 — 점수는 보여주지 않고, 바꿀 수 있다는 것과 고를 수 있는
+// 5개 영역만 알려줍니다(JunSeok 인계서 3-1의 "5개 영역 설명을 먼저 보여주기"를 절충한 버전).
+export const AXIS_CONFIRM_HINT = (axisKR: string) =>
+  `만약 ${axisKR}보다 더 중점적으로 고려하고 싶은 부분이 있을 경우, 변경할 수 있습니다. 진로/연애/관계/자기(자신)/인생 중에 고를 수 있어요.`;
 export const AXIS_CONFIRM_TIE = (aKR: string, bKR: string) =>
   `${aKR}와 ${bKR}가 비슷하게 마음이 쓰이는 것 같아요. 그래도 지금 더 신경 쓰이는 쪽은?`;
 export const AXIS_CONFIRM_ALL_HIGH = "모든 영역이 비교적 잘 채워져 있어요. 그래도 요즘 하나를 더 살펴본다면?";
