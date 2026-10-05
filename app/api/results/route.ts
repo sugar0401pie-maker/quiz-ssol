@@ -158,15 +158,12 @@ export async function POST(req: Request) {
       .eq("result_id", latest.id)
       .eq("status", "paid");
     if (!paidCount) {
-      // 2026-10-05 버그 수정(JunSeok이 짚은 "'바나 왕자님'처럼 잘못된 호칭" 사례의 원인): 섹션 1
-      // 문장은 닉네임·호칭·유형·점수를 박아서 section1_preview에 캐싱되는데(section1Cache.ts —
-      // 캐시 키가 결과 id뿐이고 입력값은 대조하지 않음), 이 덮어쓰기는 같은 행에서 닉네임·성별·
-      // 응답·유형을 전부 새 값으로 바꾸면서 캐시는 그대로 뒀다. 그래서 다시 테스트해서 저장하면
-      // (다른 닉네임·호칭이나 다른 유형이어도) 무료 미리보기와 결제 후 리포트의 섹션 1만 예전
-      // 사람 이름/호칭/유형으로 나왔다. 덮어쓸 땐 캐시도 같이 비워서 새 값으로 다시 조립되게 한다.
+      // 2026-10-05: 섹션 1 결과 캐시(section1_preview)가 있던 동안은, 이 덮어쓰기가 캐시를 안 비워
+      // 재응시 후에도 예전 이름·호칭·유형이 섹션 1에 남는 버그가 있었다(그때 캐시를 같이 비우도록
+      // 고쳤음). 같은 날 섹션 1 캐시 자체를 없애(항상 현재 행으로 조립) 그 비움 처리도 불필요해졌다.
       const { data: updated, error: updateError } = await admin
         .from("ssol_quiz_results")
-        .update({ ...row, section1_preview: null, section1_preview_at: null })
+        .update(row)
         .eq("id", latest.id)
         .select("id, share_id")
         .single();

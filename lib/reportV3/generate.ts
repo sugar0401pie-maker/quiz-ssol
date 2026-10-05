@@ -26,13 +26,20 @@ const SECTION_HEADERS: Record<string, keyof Omit<GeneratedSectionsV3, "section1"
   "8": "section8",
 };
 
+// 2026-10-05: 영역 이름이 "삶의 방향"→"인생"으로 바뀌었는데(규칙 18), 프롬프트로 시켜도 AI가
+// 예전 이름을 가끔 씁니다 — 파싱 단계에서 한 번 더 확실하게 바꿉니다. "나 자신"은 문항 원문
+// 인용·평범한 말로도 쓰여서 기계적으로 바꾸지 않고, "커리어"도 일반 명사로 쓰일 수 있어 뺐습니다.
+function normalizeAreaNames(text: string): string {
+  return text.replace(/삶의 방향/g, "인생의 방향");
+}
+
 function parseSections(markdown: string): Omit<GeneratedSectionsV3, "section1"> {
   const result: Omit<GeneratedSectionsV3, "section1"> = { section2: [], section3: [], section4: [], section5: [], section6: [], section7: [], section8: [] };
   const matches = [...markdown.matchAll(/### (\d)\.[^\n]*\n\n([\s\S]*?)(?=\n### \d\.|\s*$)/g)];
   for (const m of matches) {
     const key = SECTION_HEADERS[m[1]];
     if (!key) continue;
-    const body = normalizeBulletParagraphBreaks(m[2].trim());
+    const body = normalizeBulletParagraphBreaks(normalizeAreaNames(m[2].trim()));
     if (!body) continue;
     const paragraphs = body
       .split(/\n\n+/)
@@ -95,10 +102,8 @@ async function callModel(input: ReportV3Input): Promise<Omit<GeneratedSectionsV3
   return lastSections;
 }
 
-// 2026-09-30: 섹션 1은 호출부(무료 미리보기/결제 후 생성 라우트)가 section1Cache.ts를 통해
-// 미리 만들어(필요하면 AI로 중복 문장만 다양화하고 캐싱까지 해서) 넘겨줍니다 — 이 함수가
-// 직접 만들면 무료 미리보기 때와 다른 결과가 나올 수 있어(다양화 호출이 매번 달라질 수
-// 있음) 호출부의 캐시를 그대로 신뢰합니다.
+// 섹션 1은 호출부가 lib/reportV3/sectionOneAssembler.ts의 assembleSection1()로 만들어 넘겨줍니다
+// (AI 없이 결정론적 — 2026-10-05부터 캐시도 없음).
 /** 결제 확인 후 호출하세요. API 키가 없으면 예외를 던집니다 — 호출부에서 처리하세요. */
 export async function generateReportV3(input: ReportV3Input, section1: string[]): Promise<GeneratedSectionsV3> {
   const section6Relationships = assembleSection6Relationships(input.axis, input.mode, input.companions, input.neighbors, input.contrasts);

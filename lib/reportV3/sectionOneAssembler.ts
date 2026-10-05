@@ -7,14 +7,12 @@
 // 화면이 마크다운을 렌더링하지 않으므로(다른 섹션과 동일한 규칙), 원문의 "볼드 소제목"은
 // 전부 말머리 기호(•)로 표기합니다.
 //
-// 2026-09-30 추가: 5개 그리드 중 여러 개가 같은 점수 구간(예: 3~4점대)에 몰리면
-// scoreStateClause()가 똑같은 문장을 그대로 반복해서 어색하다는 피드백 — assembleSection1()
-// 자체는 여전히 동기·결정론적으로 유지하고, 반복이 실제로 있을 때만 assembleSection1Varied()가
-// 그 중복 문장들만 AI로 살짝 다르게 바꿔 씁니다(호출부는 preview route / generate route에서
-// section1_preview 컬럼에 캐싱해 무료 미리보기·결제 후 리포트가 항상 같은 결과를 보장합니다 —
-// 이 파일 자체는 캐싱을 모릅니다).
+// 2026-09-30: 5개 영역 중 여러 개가 같은 점수 구간에 몰려 상태 구절이 똑같이 반복되는 문제를
+// 한동안 AI가 중복 문장만 다시 써서 풀었다. 2026-10-05에 이 AI 호출과 결과 캐시(section1Cache.ts)를
+// 없애고, 구간별로 미리 써둔 표현 여러 개를 번갈아 쓰는 방식(STATE_VARIANTS)으로 바꿨다 — AI가
+// 다시 쓰면서 "든든" 계열 표현이 오히려 늘어나던 문제가 있었고, 이제 섹션 1은 100% 같은 입력이면
+// 같은 글이라 무료 미리보기·결제 후 리포트가 항상 같다(캐시가 입력과 어긋나던 문제도 함께 사라짐).
 import "server-only";
-import OpenAI from "openai";
 import { AXES, AXIS_KR, AXIS_ORDER, FACTOR_KR, type AxisKey, type FactorKey, type TypeCode } from "../data";
 import { EUN_NEUN, I_GA } from "../josa";
 import { fmtScore } from "../scoring";
@@ -53,8 +51,19 @@ const HIGH_SCORE_BANK: Record<AxisKey, string> = {
   CAR: "일하는 동안 '나답다'는 느낌이 드는 날이 많고, 성과가 기대에 못 미쳐도 그 일 하나로 나를 낮게 보지는 않는 편일 수 있어요.",
   LOV: "연락이 늦어지거나 사소하게 어긋나는 일이 있어도 크게 흔들리지 않고, 그 여유가 관계를 편안하게 만들어줄 수 있어요.",
   REL: "부담스러운 부탁엔 선을 긋고, 애매하게 어긋난 날에도 평소처럼 지낼 수 있어서 사람들과 있는 시간이 쉼이 되는 날이 많을 수 있어요.",
-  SLF: "성과나 남의 반응이 흔들려도 나에 대한 믿음까지 함께 무너지지는 않는, 비교적 탄탄한 바탕을 갖고 있을 수 있어요.",
+  SLF: "성과나 남의 반응이 흔들려도 나에 대한 믿음까지 함께 무너지지는 않는, 안정적인 바탕을 갖고 있을 수 있어요.",
   DIR: "선택 앞에서 기준이 비교적 분명해서, 결정하고 나서 뒤돌아보는 시간이 짧은 편일 수 있어요.",
+};
+
+// 2026-10-05: 영역 점수 3.0~3.9인데 확정 영역은 아닌 경우의 범용 문장. 예전엔 4.0 이상 영역과
+// 같은 HIGH_SCORE_BANK를 써서 "잘 되고 있다"는 쪽으로만 읽혔다. 여기는 "대체로 괜찮지만 가끔
+// 한 번 더 살피게 되는" 정도의 중립적인 톤이고, 특정 하위요인은 짚지 않는다.
+const MID_SCORE_BANK: Record<AxisKey, string> = {
+  CAR: "일과 진로는 큰 불편 없이 이어지지만, 가끔 이 일이 나와 맞는지 되짚어보게 되는 날도 있을 수 있어요.",
+  LOV: "연애에 대한 기대와 신뢰는 대체로 자리 잡고 있지만, 관계가 깊어지는 순간엔 마음이 조금 망설여질 때도 있을 수 있어요.",
+  REL: "사람들과의 관계는 대체로 무난하게 이어지지만, 부탁을 받거나 선을 정해야 하는 순간엔 한 번 더 생각하게 될 수 있어요.",
+  SLF: "스스로를 대체로 괜찮게 느끼지만, 성과나 남의 반응에 따라 그 느낌이 조금씩 오르내릴 수 있어요.",
+  DIR: "무엇이 중요한지는 대체로 알고 있지만, 큰 선택 앞에서는 기준을 한 번 더 확인하고 싶어질 수 있어요.",
 };
 
 // 확정(가장 낮은) 영역을 뺀 나머지 4개 영역의 순위(1~4위, 점수 내림차순) → 문장.
@@ -73,10 +82,38 @@ const EXPERT_REFERRAL =
 // 아닌 축을 직접 확정할 수 있어서 이 가정이 틀렸습니다 — 그 경우 실제로 3.00점 미만인
 // (확정되지 않은) 축이 "무난히 유지되고 있는" 문구를 받는 모순이 있었습니다. 점수만
 // 보고 판단하도록 단순화합니다(확정 여부와 무관).
-function scoreStateClause(score: number): string {
-  if (score >= 4.0) return "든든하게 채워져 있는 영역이에요";
-  if (score >= 3.0) return "무난히 유지되고 있는, 살짝 신경 써주면 더 든든해질 수 있는 영역이에요";
-  return "다섯 영역 중 에너지가 상대적으로 덜 채워진 곳이에요";
+//
+// 2026-10-05: 구간마다 표현을 여러 개 두고, 같은 구간 영역이 둘 이상이면 나온 순서대로 다른
+// 표현을 씁니다(같은 입력이면 항상 같은 결과). "든든" 계열 단어가 한 리포트에 여러 번 겹쳐
+// 부담스럽다는 피드백으로, 모든 표현에서 "든든/탄탄"을 뺐습니다 — 구간당 4~5개라 5개 영역이
+// 한 구간에 몰려도 같은 표현이 반복되지 않습니다.
+type StateBand = "high" | "mid" | "low";
+const STATE_VARIANTS: Record<StateBand, string[]> = {
+  high: [
+    "충분히 채워져 있는 영역이에요",
+    "안정적으로 자리 잡고 있는 영역이에요",
+    "여유 있게 채워져 있는 편이에요",
+    "큰 걱정 없이 잘 유지되고 있는 영역이에요",
+    "비교적 넉넉하게 채워진 영역이에요",
+  ],
+  mid: [
+    "무난히 유지되고 있는, 조금만 신경 써주면 더 좋아질 수 있는 영역이에요",
+    "큰 무리 없이 이어지고 있는 영역이에요",
+    "보통 이상으로 유지되고 있는 영역이에요",
+    "무난한 수준으로 채워져 있는 영역이에요",
+    "별다른 어려움 없이 흘러가고 있는 영역이에요",
+  ],
+  low: [
+    "다섯 영역 중 에너지가 상대적으로 덜 채워진 곳이에요",
+    "다섯 영역 가운데 충만함이 비교적 덜한 곳이에요",
+    "다른 영역에 비해 마음이 덜 채워진 곳이에요",
+  ],
+};
+
+function stateBand(score: number): StateBand {
+  if (score >= 4.0) return "high";
+  if (score >= 3.0) return "mid";
+  return "low";
 }
 
 export interface SectionOneInput {
@@ -93,7 +130,7 @@ interface AxisPart {
   axis: AxisKey;
   axisKR: string;
   score: number;
-  /** scoreStateClause()의 결과. 중복될 경우 assembleSection1Varied()가 이 값만 바꿔치기합니다. */
+  /** STATE_VARIANTS에서 고른 상태 구절(같은 구간 영역이 여럿이면 순서대로 다른 표현). */
   state: string;
   bodySentence: string;
   positionSentence: string;
@@ -132,11 +169,14 @@ function buildSectionOneParts(input: SectionOneInput): SectionOneParts {
 
   const allBelow3 = AXIS_ORDER.every((a) => axisScores[a] < 3.0);
 
+  const bandSeen: Record<StateBand, number> = { high: 0, mid: 0, low: 0 };
   const perAxis: AxisPart[] = AXIS_ORDER.map((axis) => {
     const axisKR = AXIS_KR[axis];
     const score = axisScores[axis];
     const isConfirmed = axis === confirmedAxis;
-    const state = scoreStateClause(score);
+    const band = stateBand(score);
+    const variants = STATE_VARIANTS[band];
+    const state = variants[bandSeen[band]++ % variants.length];
 
     const factors = AXES[axis];
     let lowestFactor = factors[0];
@@ -146,17 +186,17 @@ function buildSectionOneParts(input: SectionOneInput): SectionOneParts {
     // 2026-10-05 (JunSeok 인계서 6장 "고점수 영역에도 최저 하위요인 장면을 붙이던 방식" 정리):
     // 예전엔 영역 점수와 무관하게 그 안의 최저 하위요인이 4.0 미만이면 항상 "특히 ~이어서"
     // 장면을 붙여서, 영역 자체는 든든한데(예: 4.0) 하위요인 하나가 3점대라는 이유로 약점처럼
-    // 읽히는 모순이 있었다. 이제 위 scoreStateClause()와 같은 3.0 기준에 맞춰, 확정 영역이거나
-    // 영역 점수 자체가 3.0 미만일 때만 특정 하위요인 장면을 짚는다. 나머지(3.0 이상인 비확정
-    // 영역)는 하위요인을 짚지 않는 범용 문장(HIGH_SCORE_BANK)을 쓴다 — 디테일은 그 영역을 직접
-    // 고른 사람(확정 영역)과 실제로 약한 영역에만 남긴다.
+    // 읽히는 모순이 있었다. 이제 구간 기준(3.0)에 맞춰, 확정 영역이거나 영역 점수 자체가 3.0
+    // 미만일 때만 특정 하위요인 장면을 짚는다. 나머지는 하위요인을 짚지 않는 범용 문장을
+    // 쓴다 — 4.0 이상이면 HIGH_SCORE_BANK, 3.0~3.9면 중립적인 MID_SCORE_BANK. 디테일은 그
+    // 영역을 직접 고른 사람(확정 영역)과 실제로 약한 영역에만 남긴다.
     let bodySentence: string;
     const needsDrilldown = isConfirmed || score < 3.0;
     if (needsDrilldown && lowestScore < 4.0) {
       const factorKR = FACTOR_KR[lowestFactor];
       bodySentence = `특히 ${factorKR}${I_GA(factorKR)} ${fmtScore(lowestScore)}점이어서, ${SCENE_SEED_A[lowestFactor]}`;
     } else {
-      bodySentence = HIGH_SCORE_BANK[axis];
+      bodySentence = band === "high" ? HIGH_SCORE_BANK[axis] : MID_SCORE_BANK[axis];
     }
     const positionSentence = isConfirmed
       ? "이 리포트가 가장 자세히 들여다볼 곳이 바로 여기입니다."
@@ -191,63 +231,4 @@ function renderSection1({ intro, perAxis, allBelow3, closing }: SectionOneParts)
 /** 섹션 1(당신의 웰니스 프로파일)을 AI 없이 고정 문장 뱅크로 조립합니다. */
 export function assembleSection1(input: SectionOneInput): string[] {
   return renderSection1(buildSectionOneParts(input));
-}
-
-// 2026-09-30: 여러 그리드가 같은 점수 구간에 몰려 scoreStateClause()가 똑같은 문장을 반복할
-// 때만, 그 중복 문장들(첫 번째는 원문 그대로 두고 나머지만)을 AI 한 번 호출로 다르게
-// 바꿔 씁니다. 실패하면(키 없음·네트워크 오류·형식이 이상한 응답 등) 조용히 원문을 그대로
-// 씁니다 — 이 다양화는 순전히 표현상의 보너스이지, 실패한다고 리포트 생성 자체가 막히면
-// 안 됩니다.
-async function rewordDuplicateStates(entries: { axisKR: string; state: string }[]): Promise<string[] | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || entries.length === 0) return null;
-  try {
-    const client = new OpenAI({ apiKey });
-    const model = process.env.OPENAI_REPORT_MODEL || "gpt-6-sol";
-    const listText = entries.map((e, i) => `${i + 1}. [${e.axisKR}] "${e.state}"`).join("\n");
-    const res = await client.responses.create({
-      model,
-      reasoning: { effort: "low" },
-      instructions:
-        "너는 한국어 카피라이터야. 아래 문장들은 같은 심리 리포트 안에서 서로 다른 영역(축)에 반복해서 쓰인 서술어 구절이야(예: \"든든하게 채워져 있는 영역이에요\"). " +
-        "각 문장을 같은 의미와 같은 톤(따뜻하고 담백한 해요체, 반드시 \"~영역이에요\"로 끝남)을 유지하면서, 서로 다르게 들리도록 표현만 살짝 바꿔줘. " +
-        "축 이름이나 점수는 절대 언급하지 마(이미 문장 앞에 축 이름이 붙어서 나가). 원문 개수와 순서를 그대로 지켜서 JSON 배열로만 답하고, 다른 설명은 절대 쓰지 마. " +
-        '예: ["...영역이에요", "...영역이에요"]',
-      input: listText,
-      max_output_tokens: 600,
-    });
-    const text = res.output_text ?? "";
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(parsed) || parsed.length !== entries.length || !parsed.every((s) => typeof s === "string" && s.trim())) return null;
-    return parsed.map((s: string) => s.trim());
-  } catch (err) {
-    console.error("섹션1 표현 다양화 실패(원문 유지):", err instanceof Error ? err.message : err);
-    return null;
-  }
-}
-
-/**
- * assembleSection1()과 같은 내용이되, 5개 그리드 중 점수 구간이 같아서 문장이 그대로
- * 반복되는 경우에만 AI로 그 부분만 다르게 표현합니다. 호출부(프리뷰/생성 API)에서
- * 결과를 캐싱해 무료 미리보기와 결제 후 리포트가 항상 같은 문장을 보여주도록 해야 합니다.
- */
-export async function assembleSection1Varied(input: SectionOneInput): Promise<string[]> {
-  const parts = buildSectionOneParts(input);
-
-  const groups = new Map<string, number[]>();
-  parts.perAxis.forEach((p, i) => {
-    if (!groups.has(p.state)) groups.set(p.state, []);
-    groups.get(p.state)!.push(i);
-  });
-
-  const toReword = [...groups.values()].filter((indices) => indices.length >= 2).flatMap((indices) => indices.slice(1));
-  if (toReword.length > 0) {
-    const entries = toReword.map((i) => ({ axisKR: parts.perAxis[i].axisKR, state: parts.perAxis[i].state }));
-    const reworded = await rewordDuplicateStates(entries);
-    if (reworded) toReword.forEach((i, k) => (parts.perAxis[i].state = reworded[k]));
-  }
-
-  return renderSection1(parts);
 }

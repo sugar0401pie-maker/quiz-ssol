@@ -3,7 +3,7 @@ import { type AxisKey, type ModeKey, type TypeCode } from "../data";
 import { createAdminClient } from "../supabase/admin";
 import { buildReportV3Input } from "./buildInput";
 import { generateReportV3 } from "./generate";
-import { getOrBuildSection1 } from "./section1Cache";
+import { assembleSection1 } from "./sectionOneAssembler";
 
 // 2026-10-01: app/api/report/generate/route.ts에 있던 걸 공용 파일로 뺐습니다 —
 // app/api/admin/grant-report/route.ts(관리자용 무료 리포트 생성, 결제 없이 테스트/데모 계정에
@@ -73,12 +73,11 @@ export async function startOrGetGeneration(
     part2Answers: result.part2_answers,
   });
 
-  // 2026-09-30: 무료 미리보기에서 이미 섹션 1을 만들어 캐싱해뒀을 수 있으니(section1_preview)
-  // 그대로 재사용합니다 — 그래야 결제 후 리포트가 무료 미리보기와 항상 같은 문장을 보여줍니다.
-  // 캐시가 없으면 여기서 처음 만들고 캐싱합니다(무료 미리보기를 안 거치고 바로 결제한 경우).
+  // 2026-10-05: 섹션 1은 AI 없이 점수만으로 결정론적으로 조립됩니다 — 같은 입력이면 항상 같은
+  // 글이라 무료 미리보기(app/api/report/preview)와 결제 후 리포트가 따로 캐싱하지 않아도 같습니다.
   let sections;
   try {
-    const section1 = await getOrBuildSection1(admin, resultId, input);
+    const section1 = assembleSection1(input);
     sections = await generateReportV3(input, section1);
   } catch (err) {
     console.error("v3 리포트 생성 실패:", err instanceof Error ? err.message : err);
