@@ -147,7 +147,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
   // (Web Share API)에 결과 이미지를 파일로 넘겨 거기서 인스타그램(스토리·피드·DM)을 고르게 한다.
   // 지원하지 않는 환경(데스크톱, 일부 인앱 브라우저)에서는 문구를 복사하고 인스타그램 홈을 연다.
   //
-  // 이미지는 시트가 열릴 때 미리 받아둔다 — 누른 뒤에 받으면(await) 일부 브라우저(특히 iOS Safari)가
+  // 공유 이미지: 인스타그램 스토리용 세로 카드(app/api/share/story-card) — 이미지는 시트가 열릴 때 미리 받아둔다 — 누른 뒤에 받으면(await) 일부 브라우저(특히 iOS Safari)가
   // "사용자가 방금 누른 동작"으로 인정하지 않아 share()가 거부되기 때문이다.
   const shareImageRef = useRef<File | null>(null);
   useEffect(() => {
@@ -155,10 +155,16 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/images/profiles/profile-${resolveIconKey(dessert.icon)}.jpg`);
+        // 인스타그램 스토리용 세로 카드(1080×1920)를 우선 쓰고, 못 받으면 캐릭터 이미지로 대신한다.
+        let res = await fetch(`/api/share/story-card?type=${typeCode}`);
+        let ext = "png";
+        if (!res.ok) {
+          res = await fetch(`/images/profiles/profile-${resolveIconKey(dessert.icon)}.jpg`);
+          ext = "jpg";
+        }
         if (!res.ok) return;
         const blob = await res.blob();
-        if (!cancelled) shareImageRef.current = new File([blob], `${dessert.name}.jpg`, { type: blob.type || "image/jpeg" });
+        if (!cancelled) shareImageRef.current = new File([blob], `${dessert.name}.${ext}`, { type: blob.type || (ext === "png" ? "image/png" : "image/jpeg") });
       } catch {
         // 이미지를 못 받아도 아래에서 문구 복사 방식으로 대신하니 무시한다.
       }
