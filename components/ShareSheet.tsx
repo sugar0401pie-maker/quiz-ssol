@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { DESSERT, TYPE_LINE2, type TypeCode } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
-import { InstagramIcon, KakaoBubbleIcon, LinkIcon, NaverIcon, XIcon, YoutubeIcon } from "@/components/BrandIcons";
+import { InstagramIcon, KakaoBubbleIcon, LinkIcon, NaverIcon, SendIcon, XIcon } from "@/components/BrandIcons";
 
 const KAKAO_BUTTON_ID = "ssol-kakao-share-btn";
 
@@ -12,9 +12,6 @@ interface Props {
   onClose: () => void;
   onToast: (msg: string) => void;
 }
-
-// TODO: 2단계에서 실제 연동 — 유튜브 채널 주소를 쏠 웰니스 하우스 실제 공식 채널 주소로 교체
-const YOUTUBE_URL = "https://youtube.com/@ssolwellness";
 
 // 모바일에서는 앱이 깔려 있으면 앱으로, 없으면 웹으로 열리도록 시도합니다.
 // 원리: 커스텀 URL 스킴(appUrl)으로 이동을 시도하고, 잠시 후에도 페이지가 그대로면
@@ -194,14 +191,19 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
       return;
     }
     // 클릭과 같은 순간에 시작해야 한다(share는 await 없이 바로 호출). 링크 복사는 동시에 시작해 둔다.
-    const copied = copyText(shareText + " " + shareUrl).then(
+    // 스토리의 링크 스티커에 그대로 붙여넣을 수 있도록 문구 없이 링크만 복사한다(문구는 카드 이미지 안에 있다).
+    const copied = copyText(shareUrl).then(
       () => true,
       () => false
     );
     navigator
       .share(data)
       .then(async () => {
-        onToast((await copied) ? "공유 창에서 인스타그램을 골라주세요. 링크는 복사돼 있어요." : "공유 창에서 인스타그램을 골라주세요.");
+        onToast(
+          (await copied)
+            ? "링크가 복사됐어요. 인스타그램 스토리의 링크 스티커에 붙여넣어 보세요."
+            : "공유 창에서 인스타그램을 골라주세요."
+        );
         onClose();
       })
       .catch((err: unknown) => {
@@ -215,9 +217,27 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
       });
   };
 
-  const goYoutube = () => {
-    openAppOrWeb(YOUTUBE_URL.replace("https://", "vnd.youtube://"), YOUTUBE_URL);
-    onClose();
+  // 2026-10-05: 유튜브 버튼 자리를 "링크로 보내기"로 교체. 이미지 없이 문구+링크만 기기 공유 창에 넘기면
+  // 인스타그램 DM·문자·메신저가 카카오톡 공유처럼 "저는 ○○ 유형이에요. 당신은 어떤 유형일까요? + 링크"를
+  // 한 번에 받는다(이미지가 있으면 인스타 스토리·피드는 글을 버리기 때문에 이 버튼은 일부러 이미지 없이 보낸다).
+  // 공유 창을 못 쓰는 환경에서는 같은 문구를 복사한다.
+  const sendLink = () => {
+    const text = shareText + "\n" + shareUrl;
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      navigator
+        .share({ text })
+        .then(() => onClose())
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            onClose();
+            return;
+          }
+          console.error("링크 보내기 실패:", err);
+          void linkCopyFallback("공유 창을 열지 못해 링크를 복사했어요. 원하는 곳에 붙여넣어 보내보세요.");
+        });
+      return;
+    }
+    void linkCopyFallback("링크가 복사됐어요. 원하는 곳에 붙여넣어 보내보세요.");
   };
 
   return (
@@ -264,11 +284,11 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
             </span>
             <span className="lbl">인스타그램</span>
           </button>
-          <button type="button" className="share-opt" onClick={goYoutube}>
-            <span className="share-opt-icon" style={{ background: "#FF0000", color: "#fff" }}>
-              <YoutubeIcon width={24} height={24} />
+          <button type="button" className="share-opt" onClick={sendLink}>
+            <span className="share-opt-icon" style={{ background: "var(--navy)", color: "#fff" }}>
+              <SendIcon width={22} height={22} />
             </span>
-            <span className="lbl">유튜브</span>
+            <span className="lbl">링크로 보내기</span>
           </button>
         </div>
         <button type="button" className="secondary sheet-close" onClick={onClose}>

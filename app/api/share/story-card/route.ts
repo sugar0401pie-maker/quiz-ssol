@@ -9,6 +9,8 @@ import { resolveIconKey } from "@/lib/icons";
 // 직접 등록)을 씁니다. 개인정보(닉네임 등)는 넣지 않고 유형 정보만 담아서 누구나 같은 카드를 받습니다
 // — 그래서 유형별 15가지뿐이고 오래 캐싱해도 됩니다.
 //
+// 문구는 카카오톡 공유 문구("저는 ○○ 유형이에요. 당신은 어떤 유형일까요?")와 같은 메시지로 맞췄습니다.
+//
 // 인스타그램 스토리는 위쪽 약 250px(프로필·진행바)과 아래쪽 약 250px(답장창)을 앱이 가립니다 —
 // 중요한 내용은 그 사이(y 250~1670)에만 둡니다.
 export const runtime = "nodejs";
@@ -64,7 +66,7 @@ function buildSvg(typeCode: TypeCode, imageDataUri: string): string {
   <circle cx="60" cy="1760" r="320" fill="${COLOR_ACCENT}" opacity="0.07"/>
 
   <text x="${W / 2}" y="320" text-anchor="middle" font-size="38" letter-spacing="6" fill="${COLOR_ACCENT}" font-family="Noto Sans KR">쏠 웰니스 하우스</text>
-  <text x="${W / 2}" y="395" text-anchor="middle" font-size="46" fill="${COLOR_INK_SOFT}" font-family="Noto Sans KR">나의 디저트 웰니스 유형은</text>
+  <text x="${W / 2}" y="395" text-anchor="middle" font-size="46" fill="${COLOR_INK_SOFT}" font-family="Noto Sans KR">저는 이 유형이에요</text>
 
   <rect x="182" y="432" width="716" height="716" rx="66" fill="#ffffff" stroke="${COLOR_BORDER}" stroke-width="4"/>
   <image href="${imageDataUri}" x="190" y="440" width="700" height="700" preserveAspectRatio="xMidYMid slice" clip-path="url(#photo)"/>
@@ -74,7 +76,7 @@ function buildSvg(typeCode: TypeCode, imageDataUri: string): string {
   ${lines}
 
   <rect x="190" y="1520" width="700" height="130" rx="65" fill="${COLOR_ACCENT}"/>
-  <text x="${W / 2}" y="1582" text-anchor="middle" font-size="46" fill="#ffffff" font-family="Noto Sans KR">나도 테스트하기</text>
+  <text x="${W / 2}" y="1582" text-anchor="middle" font-size="46" fill="#ffffff" font-family="Noto Sans KR">당신은 어떤 유형일까요?</text>
   <text x="${W / 2}" y="1627" text-anchor="middle" font-size="30" fill="#ffffff" opacity="0.9" font-family="Noto Sans KR">quiz.ssolwellnesshouse.com</text>
 </svg>`;
 }
