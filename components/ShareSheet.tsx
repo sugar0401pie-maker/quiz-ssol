@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DESSERT, TYPE_LINE2, type TypeCode } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
 import { InstagramIcon, KakaoBubbleIcon, LinkIcon, NaverIcon, SendIcon, XIcon } from "@/components/BrandIcons";
@@ -147,6 +147,8 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
   // 공유 이미지: 인스타그램 스토리용 세로 카드(app/api/share/story-card) — 이미지는 시트가 열릴 때 미리 받아둔다 — 누른 뒤에 받으면(await) 일부 브라우저(특히 iOS Safari)가
   // "사용자가 방금 누른 동작"으로 인정하지 않아 share()가 거부되기 때문이다.
   const shareImageRef = useRef<File | null>(null);
+  // 인스타그램을 누른 직후, 기기 공유 창이 열려 있는 동안 "인스타그램 → 스토리를 고르세요" 안내를 보여준다.
+  const [igGuide, setIgGuide] = useState(false);
   useEffect(() => {
     shareImageRef.current = null;
     let cancelled = false;
@@ -196,9 +198,11 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
       () => true,
       () => false
     );
+    setIgGuide(true);
     navigator
       .share(data)
       .then(async () => {
+        setIgGuide(false);
         onToast(
           (await copied)
             ? "링크가 복사됐어요. 인스타그램 스토리의 링크 스티커에 붙여넣어 보세요."
@@ -207,6 +211,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
         onClose();
       })
       .catch((err: unknown) => {
+        setIgGuide(false);
         // 사용자가 공유 창을 닫은 경우는 오류가 아니라 취소 — 조용히 닫는다.
         if (err instanceof DOMException && err.name === "AbortError") {
           onClose();
@@ -250,6 +255,11 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
       <div className="sheet-panel">
         <div className="sheet-handle" />
         <p className="sheet-title">결과 공유하기</p>
+        {igGuide && (
+          <p className="share-guide" role="status">
+            공유 창을 여는 중이에요. 열리면 <strong>인스타그램 → 스토리</strong>를 선택해 주세요.
+          </p>
+        )}
         <div className="share-grid">
           <button type="button" id={KAKAO_BUTTON_ID} className="share-opt" onClick={shareToKakao}>
             <span className="share-opt-icon" style={{ background: "#FEE500", color: "#3A2E1F" }}>

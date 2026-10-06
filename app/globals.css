@@ -85,6 +85,11 @@ button {
 }
 button.secondary { background: transparent; color: var(--navy); border: 1px solid var(--sky); }
 button.btn-lg { font-size: 19px; padding: 15px 20px; }
+.share-guide {
+  background: var(--sky-bg); border: 1px solid var(--border); border-radius: 14px;
+  padding: 12px 14px; margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: var(--text2); text-align: center;
+}
+.share-guide strong { color: var(--navy); }
 /* 버튼처럼 보이지만 실제로는 하이퍼링크(<a>)인 큰 버튼 */
 a.link-btn-lg {
   display: block; box-sizing: border-box; text-align: center; text-decoration: none;
