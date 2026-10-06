@@ -31,12 +31,26 @@ export async function GET(req: Request) {
   const requestedId = new URL(req.url).searchParams.get("resultId");
 
   const admin = createAdminClient();
-  const query = admin
-    .from("ssol_quiz_results")
-    .select("id, user_id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key, special_key");
-  const { data, error } = requestedId
-    ? await query.eq("id", requestedId).maybeSingle()
-    : await query.eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  // 필터가 누적되지 않도록 조회할 때마다 새 쿼리를 만든다.
+  const COLUMNS =
+    "id, user_id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key, special_key";
+  const byId = (id: string) => admin.from("ssol_quiz_results").select(COLUMNS).eq("id", id).maybeSingle();
+  const latest = () =>
+    admin.from("ssol_quiz_results").select(COLUMNS).eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+  // 2026-10-06: 테스트를 두 번 이상 본 사람은 "대표 유형"으로 지정한 응시 기록이 로그인 직후 가장 먼저
+  // 뜨게 한다(요청). 대표 유형은 "지난 테스트 결과 열람하기"에서 고르는 값(profiles.primary_quiz_result_id,
+  // app.ssolwellnesshouse.com과 공유)이고, 지정한 적이 없거나 무효한 값이면(삭제·남의 기록) 예전처럼
+  // 가장 최근 기록을 쓴다. resultId를 직접 지정해 부르는 곳(지난 결과 열람)에는 영향이 없다.
+  let { data, error } = requestedId ? await byId(requestedId) : { data: null, error: null };
+  if (!requestedId) {
+    const { data: profile } = await admin.from("profiles").select("primary_quiz_result_id").eq("user_id", user.id).maybeSingle();
+    if (profile?.primary_quiz_result_id) {
+      const primary = await byId(profile.primary_quiz_result_id);
+      if (primary.data && primary.data.user_id === user.id) ({ data, error } = primary);
+    }
+    if (!data) ({ data, error } = await latest());
+  }
   if (error) {
     console.error("결과 조회 실패:", error.message);
     return NextResponse.json({ error: "fetch failed" }, { status: 500 });
