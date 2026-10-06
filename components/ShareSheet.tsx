@@ -141,19 +141,72 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
     onClose();
   };
 
-  // 인스타그램은 외부 웹페이지가 게시물 내용을 미리 채워 넣도록 허용하지 않습니다 (Instagram 플랫폼
-  // 자체 제약 — 사진/글 자동 첨부는 인스타그램 앱 SDK를 쓰는 네이티브 앱에서만 가능해요).
-  // 그래서 여기서는 문구를 클립보드에 복사해두고, 본인 계정으로 카메라/스토리 작성 화면을 열어드려요.
-  // 붙여넣기는 사용자가 직접 해야 해요.
-  const shareToInstagram = async () => {
+  // 2026-10-05: 인스타그램 공유 방식 변경. 예전엔 문구를 복사하고 instagram://camera(스토리 카메라
+  // 화면)를 열었는데, 누를 때마다 "스토리 추가하기 카메라"로만 넘어가서 공유가 안 되는 것처럼 보였다.
+  // 인스타그램은 웹페이지가 글·사진을 미리 채워 열게 해주지 않으므로, 모바일에서는 기기 공유 창
+  // (Web Share API)에 결과 이미지를 파일로 넘겨 거기서 인스타그램(스토리·피드·DM)을 고르게 한다.
+  // 지원하지 않는 환경(데스크톱, 일부 인앱 브라우저)에서는 문구를 복사하고 인스타그램 홈을 연다.
+  //
+  // 이미지는 시트가 열릴 때 미리 받아둔다 — 누른 뒤에 받으면(await) 일부 브라우저(특히 iOS Safari)가
+  // "사용자가 방금 누른 동작"으로 인정하지 않아 share()가 거부되기 때문이다.
+  const shareImageRef = useRef<File | null>(null);
+  useEffect(() => {
+    shareImageRef.current = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/images/profiles/profile-${resolveIconKey(dessert.icon)}.jpg`);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (!cancelled) shareImageRef.current = new File([blob], `${dessert.name}.jpg`, { type: blob.type || "image/jpeg" });
+      } catch {
+        // 이미지를 못 받아도 아래에서 문구 복사 방식으로 대신하니 무시한다.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [typeCode, dessert.icon, dessert.name]);
+
+  const instagramCopyFallback = async () => {
     try {
       await copyText(shareText + " " + shareUrl);
       onToast("공유 문구가 복사됐어요. 인스타그램에서 붙여넣어 올려보세요.");
     } catch {
       onToast("인스타그램 앱을 열게요. 문구는 직접 입력해주세요.");
     }
-    openAppOrWeb("instagram://camera", "https://www.instagram.com/");
+    openAppOrWeb("instagram://app", "https://www.instagram.com/");
     onClose();
+  };
+
+  const shareToInstagram = () => {
+    const file = shareImageRef.current;
+    const data: ShareData | null = file ? { files: [file], text: shareText + " " + shareUrl } : null;
+    const canShareFiles = !!data && typeof navigator !== "undefined" && typeof navigator.share === "function" && !!navigator.canShare?.(data);
+    if (!data || !canShareFiles) {
+      void instagramCopyFallback();
+      return;
+    }
+    // 클릭과 같은 순간에 시작해야 한다(share는 await 없이 바로 호출). 링크 복사는 동시에 시작해 둔다.
+    const copied = copyText(shareText + " " + shareUrl).then(
+      () => true,
+      () => false
+    );
+    navigator
+      .share(data)
+      .then(async () => {
+        onToast((await copied) ? "공유 창에서 인스타그램을 골라주세요. 링크는 복사돼 있어요." : "공유 창에서 인스타그램을 골라주세요.");
+        onClose();
+      })
+      .catch((err: unknown) => {
+        // 사용자가 공유 창을 닫은 경우는 오류가 아니라 취소 — 조용히 닫는다.
+        if (err instanceof DOMException && err.name === "AbortError") {
+          onClose();
+          return;
+        }
+        console.error("인스타그램 공유 실패:", err);
+        void instagramCopyFallback();
+      });
   };
 
   const goYoutube = () => {
