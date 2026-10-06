@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { KakaoBubbleIcon } from "@/components/BrandIcons";
 import RadarChart from "@/components/RadarChart";
 import ShareSheet from "@/components/ShareSheet";
 import { useQuiz } from "@/lib/QuizContext";
@@ -425,7 +426,9 @@ export default function ResultPage() {
       )}
 
       <div className="share-row">
-        <button className="secondary" onClick={() => setSheetOpen(true)}>
+        {/* 2026-10-06: 눈에 잘 안 띈다는 피드백 — 카카오톡 노란색 + 말풍선 아이콘으로 강조(라벨은 그대로, 공유 창은 여러 곳으로 공유됨). */}
+        <button className="kakao-share" onClick={() => setSheetOpen(true)}>
+          <KakaoBubbleIcon width={18} height={18} />
           내 결과 공유하기
         </button>
         <button className="secondary" onClick={handleSaveClick} disabled={saving}>

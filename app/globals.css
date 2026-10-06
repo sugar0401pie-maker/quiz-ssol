@@ -216,8 +216,14 @@ button:active { transform: scale(0.98); }
   background: var(--sky-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
 }
 .traits li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--navy); flex-shrink: 0; }
-.share-row { display: flex; gap: 8px; margin-top: 10px; }
-.share-row button { font-size: 13.5px; padding: 11px 12px; }
+/* 2026-10-06: '내 결과 공유하기'/'결과 저장하기' 글자 크기를 바로 아래 '다시 해보기'(기본 버튼 16px)와 같게 맞췄다.
+   16px에서는 두 버튼이 한 줄에 못 들어가 라벨이 꺾이므로, 아래 버튼들처럼 한 줄씩 가로로 꽉 차게 쌓는다. */
+.share-row { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.share-row button { font-size: 16px; padding: 12px 20px; }
+.share-row button.kakao-share {
+  background: #FEE500; border-color: #FEE500; color: #3A2E1F;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
 
 .history-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
