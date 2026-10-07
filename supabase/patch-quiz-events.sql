@@ -7,7 +7,7 @@
 create table if not exists public.ssol_quiz_events (
   id bigint generated always as identity primary key,
   created_at timestamptz not null default now(),
-  event text not null check (event in ('start', 'complete')),
+  event text not null check (event in ('start', 'complete', 'paywall_view', 'pay_click', 'signup_wall', 'pay_window')),
   run_id text not null,
   visitor_id text,
   type_key text

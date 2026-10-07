@@ -4,10 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import { ReportParagraph } from "@/components/ReportParagraph";
+import ReportTeaser from "@/components/ReportTeaser";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
 import { DESSERT } from "@/lib/data";
 import { ensureSavedResult as ensureSavedResultShared } from "@/lib/reportV3/ensureSavedResult";
+import { REPORT_PRICE, formatWon } from "@/lib/pricing";
+import type { TeaserSection } from "@/lib/reportV3/teaser";
 import { SECTION_TITLES, sectionTitlesForAxis } from "@/lib/reportV3/uiSections";
+import { trackQuizEvent } from "@/lib/trackQuizEvent";
 import { createClient } from "@/lib/supabase/client";
 import { EUL_REUL, I_GA } from "@/lib/josa";
 
@@ -32,6 +36,8 @@ export default function ReportPage() {
   const [view, setView] = useState<ViewState>("checking");
   const [busy, setBusy] = useState(false);
   const [section1, setSection1] = useState<string[] | null>(null);
+  const [teaser, setTeaser] = useState<TeaserSection[] | null>(null);
+  const paywallViewed = useRef(false);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 2026-09-28: "결제해야 열려요" 안내가 결제 후에도 계속 보이던 버그 — 토스트가 한 번 뜨면
@@ -119,6 +125,44 @@ export default function ReportPage() {
     })();
   }, [view, savedResultId]);
 
+  // 2026-10-07: 결제 전 화면에 처음 도달했을 때 한 번 센다(어느 단계에서 떨어지는지 보려는 카운터).
+  useEffect(() => {
+    if (view === "locked" && !paywallViewed.current) {
+      paywallViewed.current = true;
+      trackQuizEvent("paywall_view");
+    }
+  }, [view]);
+
+  // 2026-10-07: 블러 미리보기 문장 — 로그인하지 않았어도 응답만 있으면 서버가 점수를 다시 계산해 만들어 준다(저장 안 함).
+  useEffect(() => {
+    if (view !== "locked" || !result || teaser) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/report/teaser", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userName,
+            gender: userGender,
+            part1Answers: result.part1Answers,
+            part2Answers: result.part2Answers,
+            confirmedAxis: result.confirmedAxis,
+            confirmedMode: result.confirmedMode,
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.sections)) setTeaser(data.sections);
+      } catch {
+        // 미리보기를 못 받으면 예전처럼 제목만 있는 잠금 카드를 보여준다.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view, result, teaser, userName, userGender]);
+
   if (!result) return null;
   const { typeCode, confirmedAxis, axisScores } = result;
   const dessert = DESSERT[typeCode];
@@ -126,11 +170,13 @@ export default function ReportPage() {
   const ensureSavedResult = () => ensureSavedResultShared({ savedResultId, setSavedResultId, userName, userGender, result });
 
   const payForReport = async () => {
+    trackQuizEvent("pay_click");
     setBusy(true);
     const outcome = await ensureSavedResult();
     if (!outcome.ok) {
       setBusy(false);
       if (outcome.reason === "not_logged_in") {
+        trackQuizEvent("signup_wall");
         setPendingAfterSignup("/result/report");
         router.push("/signup");
         return;
@@ -175,6 +221,7 @@ export default function ReportPage() {
       const paymentWindow = await widgets.renderPaymentWindow({
         variantKey: { paymentMethod: "DEFAULT", agreement: "AGREEMENT" },
       });
+      trackQuizEvent("pay_window");
       paymentWindow.on("cancel", async () => {
         setBusy(false);
       });
@@ -264,36 +311,42 @@ export default function ReportPage() {
         </>
       )}
 
+      {teaser ? (
+        <ReportTeaser sections={teaser} priceLabel={`${formatWon(REPORT_PRICE)}원`} onPay={payForReport} busy={busy} />
+      ) : (
+        <>
       <p className="muted" style={{ margin: "20px 0" }}>
-        결제하면 나머지 섹션까지 전체가 열려요.
-      </p>
-
-      {[
-        { num: 1, title: SECTION_TITLES[0] },
-        { num: 2, title: SECTION_TITLES[1] },
-        { num: 3, title: sectionTitle3 },
-        { num: 4, title: sectionTitle4 },
-        { num: 5, title: sectionTitle5 },
-        { num: 6, title: SECTION_TITLES[5] },
-        { num: 7, title: SECTION_TITLES[6] },
-        { num: 8, title: SECTION_TITLES[7] },
-      ]
-        .filter((s) => !(savedResultId && s.num === 1)) // 1번은 위에서 이미 무료로 열려 있으니 잠금 목록에서 뺍니다.
-        .map(({ num, title }) => (
-          <div
-            key={num}
-            className="report-section"
-            onClick={() => setToast("🔒 이 항목은 결제 후 열려요. 아래에서 3,500원 결제하고 전체를 확인해보세요.")}
-          >
-            <div className="report-section-head">
-              <span className="r-num">{num}</span>
-              <div>
-                <p className="r-title">{title}</p>
+            결제하면 나머지 섹션까지 전체가 열려요.
+          </p>
+    
+          {[
+            { num: 1, title: SECTION_TITLES[0] },
+            { num: 2, title: SECTION_TITLES[1] },
+            { num: 3, title: sectionTitle3 },
+            { num: 4, title: sectionTitle4 },
+            { num: 5, title: sectionTitle5 },
+            { num: 6, title: SECTION_TITLES[5] },
+            { num: 7, title: SECTION_TITLES[6] },
+            { num: 8, title: SECTION_TITLES[7] },
+          ]
+            .filter((s) => !(savedResultId && s.num === 1)) // 1번은 위에서 이미 무료로 열려 있으니 잠금 목록에서 뺍니다.
+            .map(({ num, title }) => (
+              <div
+                key={num}
+                className="report-section"
+                onClick={() => setToast("🔒 이 항목은 결제 후 열려요. 아래에서 3,500원 결제하고 전체를 확인해보세요.")}
+              >
+                <div className="report-section-head">
+                  <span className="r-num">{num}</span>
+                  <div>
+                    <p className="r-title">{title}</p>
+                  </div>
+                  <span className="r-lock">🔒</span>
+                </div>
               </div>
-              <span className="r-lock">🔒</span>
-            </div>
-          </div>
-        ))}
+            ))}
+        </>
+      )}
 
       <div className="report-paywall">
         <p className="report-paywall-promo">
@@ -310,6 +363,20 @@ export default function ReportPage() {
         </button>
       )}
       {toast && <div className="toast">{toast}</div>}
+
+      {/* 2026-10-07: 스크롤해도 따라다니는 결제 바(결제율 개선). 가격을 항상 보여준다. */}
+      <div style={{ height: 84 }} aria-hidden="true" />
+      <div className="paywall-bar">
+        <div className="paywall-bar-inner">
+          <div className="paywall-bar-price">
+            <strong>심층 리포트 {formatWon(REPORT_PRICE)}원</strong>
+            쏘웰라 1주일 체험권 포함
+          </div>
+          <button className="btn-lg" onClick={payForReport} disabled={busy}>
+            이어서 읽기
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

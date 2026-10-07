@@ -288,6 +288,29 @@ button:active { transform: scale(0.98); }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .r-lock { flex-shrink: 0; font-size: 15px; opacity: 0.55; }
+/* 2026-10-07: 결제 전 블러 미리보기(components/ReportTeaser.tsx) + 화면 아래 고정 결제 바 */
+.teaser { margin: 4px 0 8px; }
+.teaser-section { margin-bottom: 22px; }
+.teaser-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.teaser-head .r-title { margin: 0; font-weight: 700; color: var(--ink); }
+.teaser-blur { position: relative; overflow: hidden; }
+.teaser-blur p { filter: blur(5px); user-select: none; -webkit-user-select: none; pointer-events: none; opacity: 0.85; }
+.teaser-blur-first::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, var(--white) 92%);
+}
+.teaser-cta { margin-top: 12px; background: var(--sky-bg); border: 1px solid var(--border); border-radius: 18px; padding: 16px 16px 18px; text-align: center; }
+.teaser-cta-title { font-weight: 700; color: var(--ink); margin: 0 0 4px; }
+.teaser-cta-sub { font-size: 13px; color: var(--text2); margin: 0 0 12px; }
+.paywall-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(255,255,255,0.96);
+  border-top: 1px solid var(--border); backdrop-filter: blur(6px);
+}
+.paywall-bar-inner { width: 100%; max-width: 480px; display: flex; align-items: center; gap: 12px; }
+.paywall-bar-price { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; color: var(--text2); }
+.paywall-bar-price strong { display: block; font-size: 16px; color: var(--ink); }
+.paywall-bar button { width: auto; white-space: nowrap; padding: 12px 20px; }
 .report-section-preview { cursor: default; background: var(--sky-bg); border-color: var(--sky); }
 .report-section-preview .report-section-head { cursor: pointer; }
 .report-section-preview .r-num { background: var(--navy); color: #fff; }

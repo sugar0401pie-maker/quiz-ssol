@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // 검증하고, 실패해도 항상 204로 응답해 화면 흐름에 영향이 없게 한다(표가 아직 없어도 마찬가지 —
 // supabase/patch-quiz-events.sql을 실행하기 전에는 서버 로그에만 오류가 남는다).
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
+const EVENTS = ["start", "complete", "paywall_view", "pay_click", "signup_wall", "pay_window"];
 
 export async function POST(req: Request) {
   let body: { event?: unknown; runId?: unknown; visitorId?: unknown; typeKey?: unknown } | null = null;
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
   const runId = body?.runId;
   const visitorId = body?.visitorId;
   const typeKey = body?.typeKey;
-  if ((event !== "start" && event !== "complete") || typeof runId !== "string" || !ID_RE.test(runId)) {
+  if (typeof event !== "string" || !EVENTS.includes(event) || typeof runId !== "string" || !ID_RE.test(runId)) {
     return new Response(null, { status: 204 });
   }
   const row = {
