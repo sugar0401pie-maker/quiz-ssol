@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { useQuiz } from "@/lib/QuizContext";
+import { trackQuizEvent } from "@/lib/trackQuizEvent";
 import { MODE_CONFIRM_OPTIONS, MODE_CONFIRM_QUESTION, MODE_ORDER, type ModeKey } from "@/lib/data";
 import { scorePart2 } from "@/lib/scoring";
 
@@ -36,6 +37,7 @@ export default function ConfirmModePage() {
       confirmedMode: mode,
       typeCode: `${confirmedAxis}-${mode}`,
     });
+    trackQuizEvent("complete", `${confirmedAxis}-${mode}`);
     router.push("/result");
   };
 

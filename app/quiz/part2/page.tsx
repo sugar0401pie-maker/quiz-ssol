@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuiz } from "@/lib/QuizContext";
+import { trackQuizEvent } from "@/lib/trackQuizEvent";
 import { AXIS_KR, PART2_ITEMS, PART2_LABELS, PART2_ORDER, part2Intro } from "@/lib/data";
 import { quizHint } from "@/lib/quizHints";
 import { scorePart2, type Part2Answers } from "@/lib/scoring";
@@ -55,6 +56,7 @@ export default function Part2Page() {
       confirmedMode,
       typeCode: `${confirmedAxis}-${confirmedMode}`,
     });
+    trackQuizEvent("complete", `${confirmedAxis}-${confirmedMode}`);
     router.push("/result");
   };
 

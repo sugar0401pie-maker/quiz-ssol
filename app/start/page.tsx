@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQuiz } from "@/lib/QuizContext";
+import { trackQuizEvent } from "@/lib/trackQuizEvent";
 import type { Gender } from "@/lib/data";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용 — 완전 정적 페이지로 빌드되면 배포 후에도 예전
@@ -35,6 +36,7 @@ export default function StartPage() {
       return;
     }
     setProfile(name.trim(), gender);
+    trackQuizEvent("start");
     router.push("/quiz");
   };
 
