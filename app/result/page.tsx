@@ -408,7 +408,7 @@ export default function ResultPage() {
         <div className="cta">
           <p className="cta-title">{who}의 이야기, 더 자세하게 알아봐요</p>
           <p>
-            나는 왜 이렇게 생각할까? 남이 보는 내 모습은 어떨까? 커피 한 잔보다 저렴한 단 돈 {formatWon(REPORT_PRICE)}원으로{" "}
+            커피 한 잔보다 저렴한 단 돈 {formatWon(REPORT_PRICE)}원으로{" "}
             {userName}님이 왜 {dessert.name}인지, 다른 유형 대비 두드러지는 강점은 무엇인지 알아보세요. 리포트와 함께 채팅할 수 있는
             쏘웰라 1주일 체험권도 제공됩니다.
           </p>
