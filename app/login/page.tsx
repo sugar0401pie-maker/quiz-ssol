@@ -114,6 +114,14 @@ export default function LoginPage() {
     // 성공하면 supabase가 알아서 카카오 페이지로 이동시킵니다.
   };
 
+  // 2026-10-10: 네이버 로그인 연결이 확인돼 로그인 화면에도 켠다(가입 화면 /signup에는 이미 있었음).
+  // 네이버는 Supabase 기본 제공이 아니라 우리 서버(/api/auth/naver)가 직접 처리하고, 끝나면 /auth/finish로 돌아온다.
+  const loginWithNaver = () => {
+    setBusy(true);
+    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup });
+    window.location.href = "/api/auth/naver";
+  };
+
   const login = async () => {
     if (!contact.trim() || !password.trim()) {
       setToast("이메일과 비밀번호를 입력해주세요.");
@@ -196,6 +204,9 @@ export default function LoginPage() {
       <p className="muted" style={{ textAlign: "center", fontSize: 12.5, margin: "16px 0 10px" }}>또는</p>
       <button type="button" className="signup-opt signup-kakao" onClick={loginWithKakao} disabled={busy}>
         <span>💬</span> 카카오로 로그인하기
+      </button>
+      <button type="button" className="signup-opt signup-naver" onClick={loginWithNaver} disabled={busy}>
+        <span>N</span> 네이버로 로그인하기
       </button>
 
       {/* 2026-09-28: 테스트를 안 본 채로(홈 "로그인하기"로) 들어온 경우에도 회원가입 경로가
