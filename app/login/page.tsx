@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
 import type { Gender } from "@/lib/data";
 import { claimGuestData } from "@/lib/guest/client";
+import { alreadySavedForMe } from "@/lib/reportV3/ensureSavedResult";
 import { createClient } from "@/lib/supabase/client";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
@@ -35,8 +36,8 @@ export default function LoginPage() {
     if (!result) return false;
     // 2026-10-15: 비회원으로 이미 저장(·결제)한 결과가 있으면 새로 저장하지 않고 이 계정으로 옮깁니다 — 새로 저장하면
     // 결제한 주문이 붙은 결과와 다른 결과가 보이게 됩니다. 옮길 게 없으면(다른 계정의 id일 수 있음) 예전처럼 저장합니다.
-    const { claimed } = await claimGuestData();
-    if (claimed && savedResultId) return true;
+    await claimGuestData();
+    if (await alreadySavedForMe(savedResultId, result)) return true;
     const res = await fetch("/api/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

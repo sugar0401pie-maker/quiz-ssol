@@ -51,3 +51,26 @@ export async function ensureSavedResult({
   }
   return { ok: false, reason: "save_failed" };
 }
+
+/**
+ * 화면이 들고 있는 savedResultId가 "지금 로그인한 계정의 저장된 결과"이고 내용도 지금 결과와 같은지 서버에서 확인합니다.
+ * 비회원으로 저장·결제한 사람이 로그인하면 그 결과가 계정으로 옮겨지는데(lib/guest/claim.ts), 누가 먼저 옮기든(가입 화면의
+ * 가져오기 요청이든 서버의 자동 가져오기든) 이 확인만으로 "이미 내 결과로 저장돼 있다"를 알 수 있어, 같은 결과를 한 번 더
+ * 새로 저장해 결제한 주문과 떨어진 복사본이 생기는 것을 막습니다. 다른 계정의 id이거나 내용이 다르면 false(=예전처럼 저장).
+ */
+export async function alreadySavedForMe(savedResultId: string | null, result: QuizResultV2): Promise<boolean> {
+  if (!savedResultId) return false;
+  try {
+    const res = await fetch(`/api/results?resultId=${encodeURIComponent(savedResultId)}`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return (
+      data?.id === savedResultId &&
+      data?.typeCode === result.typeCode &&
+      JSON.stringify(data.part1Answers) === JSON.stringify(result.part1Answers) &&
+      JSON.stringify(data.part2Answers) === JSON.stringify(result.part2Answers)
+    );
+  } catch {
+    return false;
+  }
+}

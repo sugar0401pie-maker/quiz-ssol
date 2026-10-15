@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { readAndClearPendingQuiz, useQuiz } from "@/lib/QuizContext";
 import { claimGuestData } from "@/lib/guest/client";
+import { alreadySavedForMe } from "@/lib/reportV3/ensureSavedResult";
 import { createClient } from "@/lib/supabase/client";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
@@ -40,10 +41,10 @@ export default function AuthFinishPage() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
-          // 2026-10-15: 비회원으로 이미 저장(·결제)한 결과가 있으면 새로 저장하지 않고 이 계정으로 옮깁니다 —
-          // 새로 저장하면 결제한 주문이 붙은 결과와 다른 결과를 보게 됩니다.
-          const { claimed } = await claimGuestData();
-          if (claimed && pending.savedResultId) {
+          // 2026-10-15: 비회원으로 이미 저장(·결제)한 결과는 이 계정으로 옮겨진 뒤 그대로 씁니다 — 새로 저장하면
+          // 결제한 주문이 붙은 결과와 다른 복사본을 보게 됩니다.
+          await claimGuestData();
+          if (pending.savedResultId && (await alreadySavedForMe(pending.savedResultId, pending.result))) {
             setSavedResultId(pending.savedResultId);
             router.replace(target);
             return;

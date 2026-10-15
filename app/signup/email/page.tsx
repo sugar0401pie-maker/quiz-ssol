@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuiz } from "@/lib/QuizContext";
 import { claimGuestData } from "@/lib/guest/client";
+import { alreadySavedForMe } from "@/lib/reportV3/ensureSavedResult";
 import { createClient } from "@/lib/supabase/client";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
@@ -192,8 +193,8 @@ export default function SignupEmailPage() {
     // 없으니 그냥 성공으로 취급하고 넘어갑니다.
     if (!result) return true;
     // 2026-10-15: 비회원으로 이미 저장(·결제)한 결과가 있으면 새로 저장하지 않고 이 계정으로 옮깁니다(app/login/page.tsx와 같은 이유).
-    const { claimed } = await claimGuestData();
-    if (claimed && savedResultId) return true;
+    await claimGuestData();
+    if (await alreadySavedForMe(savedResultId, result)) return true;
     const res = await fetch("/api/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
