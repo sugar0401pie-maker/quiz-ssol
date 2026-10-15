@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
 import type { Gender } from "@/lib/data";
+import { claimGuestData } from "@/lib/guest/client";
+import { alreadySavedForMe } from "@/lib/reportV3/ensureSavedResult";
 import { createClient } from "@/lib/supabase/client";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
@@ -18,7 +20,7 @@ export const dynamic = "force-dynamic";
 //    서버에 저장돼 있던 가장 최근 결과를 불러와 이어서 보여줍니다.
 export default function LoginPage() {
   const router = useRouter();
-  const { result, userName, userGender, setProfile, setResult, setSavedResultId, pendingAfterSignup, setPendingAfterSignup, reset } =
+  const { result, userName, userGender, savedResultId, setProfile, setResult, setSavedResultId, pendingAfterSignup, setPendingAfterSignup, reset } =
     useQuiz();
   const [contact, setContact] = useState("");
   const [password, setPassword] = useState("");
@@ -32,6 +34,10 @@ export default function LoginPage() {
 
   const saveResult = async () => {
     if (!result) return false;
+    // 2026-10-15: 비회원으로 이미 저장(·결제)한 결과가 있으면 새로 저장하지 않고 이 계정으로 옮깁니다 — 새로 저장하면
+    // 결제한 주문이 붙은 결과와 다른 결과가 보이게 됩니다. 옮길 게 없으면(다른 계정의 id일 수 있음) 예전처럼 저장합니다.
+    await claimGuestData();
+    if (await alreadySavedForMe(savedResultId, result)) return true;
     const res = await fetch("/api/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,6 +61,7 @@ export default function LoginPage() {
 
   // result가 없는 채로 로그인한 경우 — 서버에 저장된 가장 최근 결과를 불러옵니다.
   const loadLatestSavedResult = async (): Promise<"loaded" | "none" | "error"> => {
+    await claimGuestData(); // 이 브라우저에서 비회원으로 저장·결제한 것이 있으면 먼저 계정으로 옮깁니다.
     const res = await fetch("/api/results");
     if (res.status === 404) return "none";
     if (!res.ok) return "error";
@@ -101,7 +108,7 @@ export default function LoginPage() {
   // 되므로, 이메일/비밀번호 입력 없이 바로 이 흐름을 탑니다.
   const loginWithKakao = async () => {
     setBusy(true);
-    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup });
+    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup, savedResultId });
     const { error } = await createClient().auth.signInWithOAuth({
       provider: "kakao",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -118,7 +125,7 @@ export default function LoginPage() {
   // 네이버는 Supabase 기본 제공이 아니라 우리 서버(/api/auth/naver)가 직접 처리하고, 끝나면 /auth/finish로 돌아온다.
   const loginWithNaver = () => {
     setBusy(true);
-    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup });
+    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup, savedResultId });
     window.location.href = "/api/auth/naver";
   };
 

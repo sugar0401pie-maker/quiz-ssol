@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Gaegu, Noto_Sans_KR } from "next/font/google";
 import AuthFooterLink from "@/components/AuthFooterLink";
+import GuestClaim from "@/components/GuestClaim";
 import KakaoInit from "@/components/KakaoInit";
 import { QuizProvider } from "@/lib/QuizContext";
 import "./globals.css";
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="ko" className={`${gaegu.variable} ${noto.variable}`}>
       <body>
         <KakaoInit />
+        <GuestClaim />
         <QuizProvider>
           <div className="app">
             {children}

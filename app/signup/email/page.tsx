@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuiz } from "@/lib/QuizContext";
+import { claimGuestData } from "@/lib/guest/client";
+import { alreadySavedForMe } from "@/lib/reportV3/ensureSavedResult";
 import { createClient } from "@/lib/supabase/client";
 
 // 2026-09-24: Vercel 엣지 캐시 문제 회피용(자세한 이유는 app/start/page.tsx 주석 참고).
@@ -37,7 +39,7 @@ function isAtLeastAge(birthDate: string, minAge: number): boolean {
 // TODO: 2단계에서 실제 연동 — 휴대폰 번호 가입은 SMS 발송 업체 연결 후 지원
 export default function SignupEmailPage() {
   const router = useRouter();
-  const { result, userName, userGender, setSavedResultId, pendingAfterSignup, setPendingAfterSignup } = useQuiz();
+  const { result, userName, userGender, savedResultId, setSavedResultId, pendingAfterSignup, setPendingAfterSignup } = useQuiz();
   // 온보딩에서 적은 값은 "닉네임"이고, 여기 "이름"은 실명이라 서로 다른 값입니다 — 미리 채우지 않습니다.
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
@@ -190,6 +192,9 @@ export default function SignupEmailPage() {
     // 테스트 결과 없이(홈 "로그인하기" → "회원가입하기") 가입한 경우 — 저장할 결과가
     // 없으니 그냥 성공으로 취급하고 넘어갑니다.
     if (!result) return true;
+    // 2026-10-15: 비회원으로 이미 저장(·결제)한 결과가 있으면 새로 저장하지 않고 이 계정으로 옮깁니다(app/login/page.tsx와 같은 이유).
+    await claimGuestData();
+    if (await alreadySavedForMe(savedResultId, result)) return true;
     const res = await fetch("/api/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

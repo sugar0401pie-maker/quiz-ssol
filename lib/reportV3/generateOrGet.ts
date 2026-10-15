@@ -25,7 +25,9 @@ export async function startOrGetGeneration(
   admin: ReturnType<typeof createAdminClient>,
   resultId: string,
   orderId: string,
-  userId: string
+  userId: string | null,
+  // 2026-10-15: 비회원 주문이면 계정(userId) 대신 이 브라우저 열쇠의 해시로 리포트를 묶습니다(가입하면 소유자가 옮겨짐).
+  guestHash: string | null = null
 ): Promise<GenerationOutcome> {
   const { data: existing } = await admin
     .from("ssol_reports")
@@ -41,7 +43,10 @@ export async function startOrGetGeneration(
   // 이번 요청이 락을 겁니다(락 없음/오래된 락/이전 실패 전부 이 경로).
   const { error: lockError } = await admin
     .from("ssol_reports")
-    .upsert({ order_id: orderId, result_id: resultId, user_id: userId, status: "generating", created_at: new Date().toISOString(), assembled: null }, { onConflict: "order_id" });
+    .upsert(
+      { order_id: orderId, result_id: resultId, user_id: userId, ...(guestHash ? { guest_token_hash: guestHash } : {}), status: "generating", created_at: new Date().toISOString(), assembled: null },
+      { onConflict: "order_id" }
+    );
   if (lockError) {
     console.error("리포트 락 설정 실패:", lockError.message);
     return { status: "failed" };

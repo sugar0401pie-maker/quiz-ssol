@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { GENDER_TITLE, type AxisKey, type Gender, type ModeKey, type TypeCode } from "@/lib/data";
 import { buildReportEmailHtml, reportEmailSubject } from "@/lib/reportV3/emailHtml";
 import type { GeneratedSectionsV3 } from "@/lib/reportV3/types";
+import { resolveOwner } from "@/lib/guest/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 // 2026-09-28: 심층 리포트 "메일로 보내기" 버튼 — Resend로 발송합니다.
 // RESEND_API_KEY가 아직 없으면(설정 전) 501로 명확히 실패를 알립니다 — 조용히 성공한 척하지 않음.
@@ -12,11 +12,9 @@ import { createClient } from "@/lib/supabase/server";
 const FROM_ADDRESS = "쏠 웰니스 하우스 <report@ssolwellnesshouse.com>";
 
 export async function POST(req: Request) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
+  // 2026-10-15: 로그인 없이 결제한 사람도 자기 리포트를 메일로 받아볼 수 있습니다(소유자 = 계정 또는 이 브라우저 열쇠).
+  const owner = await resolveOwner(req);
+  if (!owner) return NextResponse.json({ error: "login required" }, { status: 401 });
 
   let body: { resultId?: string; email?: string } | null;
   try {
@@ -36,13 +34,13 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
-  const { data: order } = await admin
+  const orderQuery = admin
     .from("ssol_orders")
     .select("id")
     .eq("result_id", resultId)
-    .eq("user_id", user.id)
     .eq("status", "paid")
-    .eq("report_kind", "solo")
+    .eq("report_kind", "solo");
+  const { data: order } = await (owner.kind === "user" ? orderQuery.eq("user_id", owner.userId) : orderQuery.is("user_id", null).eq("guest_token_hash", owner.hash))
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
