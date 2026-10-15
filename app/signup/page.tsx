@@ -38,7 +38,7 @@ const SOCIAL_LOGIN_ENABLED = true;
 // 6. 계정 만들기 선택
 export default function SignupPage() {
   const router = useRouter();
-  const { result, userName, userGender, pendingAfterSignup } = useQuiz();
+  const { result, userName, userGender, pendingAfterSignup, savedResultId } = useQuiz();
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -51,13 +51,13 @@ export default function SignupPage() {
   // 카카오/네이버는 외부 사이트로 이동했다 돌아오므로, 떠나기 직전에 지금 상태를 잠깐 담아둡니다.
   const goToOAuth = (url: string) => {
     setBusy(true);
-    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup });
+    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup, savedResultId });
     window.location.href = url;
   };
 
   const signupWithKakao = async () => {
     setBusy(true);
-    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup });
+    stashPendingQuizForOAuth({ userName, userGender, result, pendingAfterSignup, savedResultId });
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",

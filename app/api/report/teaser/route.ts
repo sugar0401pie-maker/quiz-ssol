@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { AXIS_ORDER, MODE_ORDER, PART1_ITEMS, PART2_ITEMS, type AxisKey, type Gender, type ModeKey } from "@/lib/data";
 import { buildReportV3Input } from "@/lib/reportV3/buildInput";
+import { assembleSection1 } from "@/lib/reportV3/sectionOneAssembler";
 import { buildReportTeaser } from "@/lib/reportV3/teaser";
 import { scorePart1, scorePart2 } from "@/lib/scoring";
 
@@ -47,5 +48,7 @@ export async function POST(req: Request) {
     part1Answers,
     part2Answers,
   });
-  return NextResponse.json({ sections: buildReportTeaser(input) }, { headers: { "Cache-Control": "no-store" } });
+  // 2026-10-15: 섹션 1(웰니스 프로파일)은 AI 없이 점수만으로 정해지는 무료 공개 파트라, 로그인·저장 없이도
+  // (스와이프 결과 화면의 2장) 같이 내려줍니다. 결제 후 리포트의 섹션 1과 항상 같은 글입니다.
+  return NextResponse.json({ sections: buildReportTeaser(input), section1: assembleSection1(input) }, { headers: { "Cache-Control": "no-store" } });
 }

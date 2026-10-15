@@ -53,10 +53,14 @@ export async function GET(req: Request) {
 
     // 결제 성공 시 1주일 AI 채팅권 발급 (schema.sql 6)번 흐름 예시대로).
     // order_id는 ssol_chat_passes에 unique라 혹시 중복 호출돼도 안전합니다.
-    const { error: passError } = await admin
-      .from("ssol_chat_passes")
-      .upsert({ user_id: order.user_id, order_id: order.id }, { onConflict: "order_id", ignoreDuplicates: true });
-    if (passError) console.error("채팅권 발급 실패:", passError.message);
+    // 2026-10-15: 로그인 없이 결제한(비회원) 주문은 아직 줄 계정이 없으니 건너뜁니다 — 나중에 가입해서
+    // 그 주문을 가져올 때(lib/guest/claim.ts) 그 시점부터 1주일로 지급합니다.
+    if (order.user_id) {
+      const { error: passError } = await admin
+        .from("ssol_chat_passes")
+        .upsert({ user_id: order.user_id, order_id: order.id }, { onConflict: "order_id", ignoreDuplicates: true });
+      if (passError) console.error("채팅권 발급 실패:", passError.message);
+    }
   } catch (err) {
     console.error("결제 승인 처리 중 오류:", err instanceof Error ? err.message : err);
     await admin.from("ssol_orders").update({ status: "failed" }).eq("id", order.id);

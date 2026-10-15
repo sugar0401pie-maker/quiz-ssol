@@ -11,10 +11,28 @@ import {
   type TypeCode,
 } from "@/lib/data";
 import { detectSpecialResult, scorePart1, scorePart2 } from "@/lib/scoring";
+import { claimGuestRows } from "@/lib/guest/claim";
+import { guestHashFrom, ownerColumns, ownsRow, resolveOwner } from "@/lib/guest/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 const GENDERS: Gender[] = ["female", "male", "none"];
+
+// SELECT 칸 목록을 문자열로 이어 붙여 쓰기 때문에(비회원 요청에만 guest_token_hash 추가) 타입을 직접 적어 둡니다.
+interface ResultRow {
+  id: string;
+  user_id: string | null;
+  guest_token_hash?: string | null;
+  user_name: string;
+  gender: string;
+  part1_answers: unknown;
+  part2_answers: unknown;
+  axis_scores: unknown;
+  factor_scores: unknown;
+  sub_scores: unknown;
+  mode_scores: unknown;
+  type_key: string;
+  special_key: string | null;
+}
 
 // 2026-09-25: 첫 화면 "이미 테스트를 보셨다면 로그인하기" 흐름용 — 로그인한 사용자가 이전에
 // 저장해둔 가장 최근 결과를 돌려줍니다. 저장된 결과가 없으면 404로, 아예 로그인이 안 됐으면
@@ -22,40 +40,52 @@ const GENDERS: Gender[] = ["female", "male", "none"];
 // 2026-09-30: ?resultId= 를 주면(지난 테스트 결과 열람하기 → 특정 기록 선택) 최신 결과
 // 대신 그 특정 기록을 돌려줍니다. 본인 소유가 아니면(다른 사용자의 id) 404로 처리합니다.
 export async function GET(req: Request) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
+  // 2026-10-15: 비회원(로그인 없이 저장·결제한 사람)도 이 브라우저의 열쇠로 자기 결과를 다시 불러옵니다 —
+  // 결제창을 다녀오거나 다른 앱(인스타 등)에서 돌아와 화면 메모리가 비었을 때 결과를 잃지 않게 하려는 것.
+  const owner = await resolveOwner(req);
+  if (!owner) return NextResponse.json({ error: "login required" }, { status: 401 });
 
   const requestedId = new URL(req.url).searchParams.get("resultId");
 
   const admin = createAdminClient();
-  // 필터가 누적되지 않도록 조회할 때마다 새 쿼리를 만든다.
+  // 로그인한 사용자가 비회원 열쇠도 같이 보내면 그 기록을 먼저 계정으로 옮깁니다(가입 직후 결과를 불러올 때 빠지지 않게).
+  if (owner.kind === "user") {
+    const guestHash = guestHashFrom(req);
+    if (guestHash) await claimGuestRows(admin, owner.userId, guestHash);
+  }
+  // 필터가 누적되지 않도록 조회할 때마다 새 쿼리를 만든다. guest_token_hash 칸은 비회원 요청에만 씁니다
+  // (이 칸을 만드는 SQL을 실행하기 전에도 로그인 사용자 흐름이 그대로 동작하도록).
   const COLUMNS =
-    "id, user_id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key, special_key";
+    "id, user_id, user_name, gender, part1_answers, part2_answers, axis_scores, factor_scores, sub_scores, mode_scores, type_key, special_key" +
+    (owner.kind === "guest" ? ", guest_token_hash" : "");
   const byId = (id: string) => admin.from("ssol_quiz_results").select(COLUMNS).eq("id", id).maybeSingle();
   const latest = () =>
-    admin.from("ssol_quiz_results").select(COLUMNS).eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    owner.kind === "user"
+      ? admin.from("ssol_quiz_results").select(COLUMNS).eq("user_id", owner.userId).order("created_at", { ascending: false }).limit(1).maybeSingle()
+      : admin.from("ssol_quiz_results").select(COLUMNS).is("user_id", null).eq("guest_token_hash", owner.hash).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
   // 2026-10-06: 테스트를 두 번 이상 본 사람은 "대표 유형"으로 지정한 응시 기록이 로그인 직후 가장 먼저
   // 뜨게 한다(요청). 대표 유형은 "지난 테스트 결과 열람하기"에서 고르는 값(profiles.primary_quiz_result_id,
   // app.ssolwellnesshouse.com과 공유)이고, 지정한 적이 없거나 무효한 값이면(삭제·남의 기록) 예전처럼
   // 가장 최근 기록을 쓴다. resultId를 직접 지정해 부르는 곳(지난 결과 열람)에는 영향이 없다.
-  let { data, error } = requestedId ? await byId(requestedId) : { data: null, error: null };
+  let { data, error } = (requestedId ? await byId(requestedId) : { data: null, error: null }) as unknown as { data: ResultRow | null; error: { message: string } | null };
   if (!requestedId) {
-    const { data: profile } = await admin.from("profiles").select("primary_quiz_result_id").eq("user_id", user.id).maybeSingle();
-    if (profile?.primary_quiz_result_id) {
-      const primary = await byId(profile.primary_quiz_result_id);
-      if (primary.data && primary.data.user_id === user.id) ({ data, error } = primary);
+    if (owner.kind === "user") {
+      const { data: profile } = await admin.from("profiles").select("primary_quiz_result_id").eq("user_id", owner.userId).maybeSingle();
+      if (profile?.primary_quiz_result_id) {
+        const primary = (await byId(profile.primary_quiz_result_id)) as unknown as { data: ResultRow | null; error: { message: string } | null };
+        if (primary.data && primary.data.user_id === owner.userId) ({ data, error } = primary);
+      }
     }
-    if (!data) ({ data, error } = await latest());
+    if (!data) ({ data, error } = (await latest()) as unknown as { data: ResultRow | null; error: { message: string } | null });
   }
   if (error) {
     console.error("결과 조회 실패:", error.message);
     return NextResponse.json({ error: "fetch failed" }, { status: 500 });
   }
-  if (!data || data.user_id !== user.id) return NextResponse.json({ error: "no saved result" }, { status: 404 });
+  if (!data || !ownsRow(owner, data)) {
+    return NextResponse.json({ error: "no saved result" }, { status: 404 });
+  }
 
   const [confirmedAxis, confirmedMode] = data.type_key.split("-");
   return NextResponse.json({
@@ -81,11 +111,10 @@ export async function GET(req: Request) {
 // confirmedAxis/confirmedMode는 각각 그 시점에 유효했던 후보(options/leaders) 안에 있는지만
 // 검증합니다(무작위 요소가 없는 v2에서는 이 정도로 충분히 엄격합니다).
 export async function POST(req: Request) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "login required" }, { status: 401 });
+  // 2026-10-15: 비회원도 결과를 서버에 저장할 수 있습니다(결제하려면 결과가 DB에 있어야 해서). 저장은 이 브라우저의
+  // 열쇠(해시)에 묶이고, 나중에 가입하면 /api/results/claim이 그 계정으로 옮깁니다.
+  const owner = await resolveOwner(req);
+  if (!owner) return NextResponse.json({ error: "login required" }, { status: 401 });
 
   let body: Record<string, unknown> | null;
   try {
@@ -139,8 +168,15 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
-  const row = {
-    user_id: user.id,
+  // 로그인한 사용자가 비회원 열쇠도 같이 보내면(가입 직후 등) 먼저 비회원 기록을 계정으로 옮겨서,
+  // 아래 "덮어쓰기" 판단이 옮겨진 기록(이미 결제한 것 포함)을 기준으로 이뤄지게 합니다.
+  if (owner.kind === "user") {
+    const guestHash = guestHashFrom(req);
+    if (guestHash) await claimGuestRows(admin, owner.userId, guestHash);
+  }
+
+  const row: Record<string, unknown> = {
+    ...ownerColumns(owner),
     user_name: userName.trim(),
     gender,
     part1_answers: part1Answers,
@@ -157,11 +193,12 @@ export async function POST(req: Request) {
 
   // 2026-09-26: 이미 저장된 결과가 있는 사용자가 다시 테스트하고 저장하면 "덮어쓰기"로 처리합니다.
   // 단, 그 결과로 이미 결제한 리포트가 있으면 덮어쓰지 않고 새 행으로 남깁니다(결제한 리포트가
-  // 새 응답으로 바뀌어 보이는 걸 막기 위해).
-  const { data: latest } = await admin
-    .from("ssol_quiz_results")
-    .select("id")
-    .eq("user_id", user.id)
+  // 새 응답으로 바뀌어 보이는 걸 막기 위해). 비회원도 같은 규칙(자기 열쇠의 가장 최근 기록 기준)입니다.
+  const latestQuery = admin.from("ssol_quiz_results").select("id");
+  const { data: latest } = await (owner.kind === "user"
+    ? latestQuery.eq("user_id", owner.userId)
+    : latestQuery.is("user_id", null).eq("guest_token_hash", owner.hash)
+  )
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

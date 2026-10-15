@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import PaymentConsentSheet from "@/components/result/PaymentConsentSheet";
 import { stashPendingQuizForOAuth, useQuiz } from "@/lib/QuizContext";
 import { DESSERT, type TypeCode } from "@/lib/data";
 import { buildRelationshipSections, type RelationshipSections } from "@/lib/relationshipReport";
@@ -29,6 +30,7 @@ function RelationshipReportInner() {
   const [view, setView] = useState<ViewState>("locked");
   const [assembled, setAssembled] = useState<ReadyAssembled | null>(null);
   const [busy, setBusy] = useState(false);
+  const [consentOpen, setConsentOpen] = useState(false);
 
   const friendTypeCode = params.get("friend") as TypeCode | null;
   const friendName = params.get("friendName") || (friendTypeCode ? DESSERT[friendTypeCode].name : "");
@@ -92,7 +94,10 @@ function RelationshipReportInner() {
 
   const returnPath = `/result/report/relationship?friend=${friendTypeCode}&friendName=${encodeURIComponent(friendName)}`;
 
-  const payForReport = async () => {
+  // 2026-10-15: 결제 전 "청약철회 제한" 동의를 먼저 받습니다(개인 리포트와 같은 시트, 서버도 withdrawalAck를 확인).
+  const payForReport = () => setConsentOpen(true);
+
+  const startPayment = async () => {
     setBusy(true);
     const outcome = await ensureSavedResult();
     if (!outcome.ok) {
@@ -114,7 +119,7 @@ function RelationshipReportInner() {
       const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resultId: outcome.id, reportKind: "relationship", friendTypeCode }),
+        body: JSON.stringify({ resultId: outcome.id, reportKind: "relationship", friendTypeCode, withdrawalAck: true }),
       });
       if (!orderRes.ok) {
         setToast("주문을 만들지 못했어요. 잠시 후 다시 시도해주세요.");
@@ -233,7 +238,15 @@ function RelationshipReportInner() {
           ))}
         </div>
 
-        {toast && <div className="toast">{toast}</div>}
+        <PaymentConsentSheet
+        open={consentOpen}
+        onClose={() => setConsentOpen(false)}
+        onConfirm={() => {
+          setConsentOpen(false);
+          void startPayment();
+        }}
+      />
+      {toast && <div className="toast">{toast}</div>}
       </div>
     );
   }
