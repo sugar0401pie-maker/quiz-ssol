@@ -8,7 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // configured: 환경변수 CRON_SECRET이 이 배포에 들어가 있는지만 알려줍니다(값은 절대 노출하지 않음) — 설정 확인용.
+    return NextResponse.json({ error: "unauthorized", configured: !!secret }, { status: 401 });
   }
   const admin = createAdminClient();
   const cutoff = new Date(Date.now() - 30 * 24 * 3600e3).toISOString();
