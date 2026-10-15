@@ -18,10 +18,13 @@ export interface PagerSlide {
 interface Props {
   slides: PagerSlide[];
   initialIndex?: number;
+  /** 스와이프·버튼이 끝나 장이 "정해졌을 때" 한 번 불립니다(움직이는 중간 장마다 부르지 않음). */
   onIndexChange?: (index: number) => void;
+  /** 주소(뒤로가기 등)가 가리키는 장. 객체가 새로 들어올 때마다, 지금 정해진 장과 다르면 그 장으로 넘깁니다. */
+  target?: { index: number };
 }
 
-export default function ResultPager({ slides, initialIndex = 0, onIndexChange }: Props) {
+export default function ResultPager({ slides, initialIndex = 0, onIndexChange, target }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLElement | null)[]>([]);
   const topRef = useRef<HTMLDivElement>(null);
@@ -29,6 +32,7 @@ export default function ResultPager({ slides, initialIndex = 0, onIndexChange }:
   const [height, setHeight] = useState<number | undefined>(undefined);
   const indexRef = useRef(index);
   indexRef.current = index;
+  const settledRef = useRef(Math.min(initialIndex, slides.length - 1)); // 스크롤이 멈춰 확정된 장
   const total = slides.length;
 
   const goTo = useCallback(
@@ -47,27 +51,40 @@ export default function ResultPager({ slides, initialIndex = 0, onIndexChange }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 손가락·버튼으로 가로 스크롤이 움직이면 지금 장 번호를 갱신합니다.
+  // 손가락·버튼으로 가로 스크롤이 움직이면 지금 장 번호(진행 막대)를 바로 갱신하고, 멈추면(약 0.15초 뒤) 한 번만 알립니다.
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
     let raf = 0;
+    let settle: ReturnType<typeof setTimeout> | undefined;
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
-        if (i !== indexRef.current) {
-          setIndex(i);
+        if (i !== indexRef.current) setIndex(i);
+      });
+      clearTimeout(settle);
+      settle = setTimeout(() => {
+        const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+        if (i !== settledRef.current) {
+          settledRef.current = i;
           onIndexChange?.(i);
         }
-      });
+      }, 150);
     };
     track.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       track.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(raf);
+      clearTimeout(settle);
     };
   }, [onIndexChange]);
+
+  // 주소가 가리키는 장이 지금과 다르면(뒤로가기 등) 그 장으로.
+  useEffect(() => {
+    if (!target || target.index < 0 || target.index >= total) return;
+    if (target.index !== settledRef.current) goTo(target.index);
+  }, [target, total, goTo]);
 
   // 화면 폭이 바뀌면(회전 등) 지금 장에 다시 맞춥니다.
   useEffect(() => {
