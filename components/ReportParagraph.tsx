@@ -1,4 +1,5 @@
 import { splitBoldParagraph } from "@/lib/reportV3/boldParagraph";
+import { highlightBySentenceIndex, highlightKeySentence } from "@/lib/reportV3/highlight";
 
 // 2026-09-29: "첫째, 둘째, ... 볼드 처리해줬으면" + "말머리(•) 처리된 부분도 볼드처리" 요청 —
 // 리포트 문단은 마크다운 없이 plain <p>{text}</p>로 렌더링되므로(** 금지 규칙,
@@ -18,14 +19,28 @@ export function ReportParagraph({
   className,
   forceBold,
   boldOnly,
+  highlight,
 }: {
   text: string;
   className?: string;
   forceBold?: boolean;
   boldOnly?: boolean;
+  /** 문단 안에서 굵게 보일 문장: 문장 번호 목록(AI가 고른 것) 또는 "auto"(규칙으로 고름). 없으면 아무것도 굵게 하지 않습니다. */
+  highlight?: number[] | "auto";
 }) {
   const { boldText, restText } = splitBoldParagraph(text, forceBold || boldOnly);
-  if (!boldText) return <p className={className}>{text}</p>;
+  if (!boldText) {
+    // 2026-10-21: 3~10장의 긴 글에서 요약·결론 문장만 굵게(lib/reportV3/highlight.ts).
+    const parts = highlight === "auto" ? highlightKeySentence(text) : highlight && highlight.length ? highlightBySentenceIndex(text, highlight) : null;
+    if (parts && parts.some((x) => x.bold)) {
+      return (
+        <p className={className}>
+          {parts.map((x, i) => (x.bold ? <strong key={i}>{x.text}</strong> : <span key={i}>{x.text}</span>))}
+        </p>
+      );
+    }
+    return <p className={className}>{text}</p>;
+  }
   const cls = forceBold ? [className, "lead-in-summary"].filter(Boolean).join(" ") : className;
   return (
     <p className={cls}>

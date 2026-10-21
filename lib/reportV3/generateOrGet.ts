@@ -3,6 +3,7 @@ import { type AxisKey, type ModeKey, type TypeCode } from "../data";
 import { createAdminClient } from "../supabase/admin";
 import { buildReportV3Input } from "./buildInput";
 import { generateReportV3 } from "./generate";
+import { pickHighlights } from "./pickHighlights";
 import { assembleSection1 } from "./sectionOneAssembler";
 
 // 2026-10-01: app/api/report/generate/route.ts에 있던 걸 공용 파일로 뺐습니다 —
@@ -90,7 +91,10 @@ export async function startOrGetGeneration(
     return { status: "failed" };
   }
 
+  // 2026-10-21: 3~10장에서 굵게 보일 요약·결론 문장(실패해도 빈 결과 — 리포트 완성에는 영향 없음).
+  const highlights = await pickHighlights(sections);
   const assembled = {
+    highlights,
     section1: sections.section1,
     section2: sections.section2,
     section3: sections.section3,

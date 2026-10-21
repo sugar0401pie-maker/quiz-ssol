@@ -426,5 +426,9 @@ button:active { transform: scale(0.98); }
 /* 스와이프 칸 안에서는 캐릭터 그림을 카드 가장자리까지 늘리지 않고(옆 장으로 번져 보임) 칸 폭에 맞춥니다. */
 .pager-slide .res-avatar { width: 100%; margin: 0 0 16px; height: 340px; border-radius: 20px; }
 
-/* 3장 평균 대비 블록과 아래 "이런 사람" 사이 간격·구분선 */
-.avg-compare { margin-bottom: 26px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+/* 3장: 웰니스 프로파일 아래 평균 대비 블록(결제 전엔 가짜 틀만 흐리게) */
+.avg-compare { margin-top: 24px; }
+.cmp-skel { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 20px; padding: 14px 12px; border: 1px solid var(--border); border-radius: 16px; }
+.cmp-skel-row { display: flex; align-items: center; gap: 10px; }
+.cmp-skel-row span { flex: 0 0 34%; height: 9px; border-radius: 5px; background: var(--border); }
+.cmp-skel-row i { display: block; height: 9px; border-radius: 5px; background: var(--navy); opacity: 0.55; }

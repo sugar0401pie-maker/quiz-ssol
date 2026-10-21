@@ -84,8 +84,17 @@ export function ProfileSlide({ userName, title, result }: HeroProps) {
   );
 }
 
-// 2장 — 심층 리포트 앞부분(1번 웰니스 프로파일). 무료 공개 파트입니다.
-export function ReportIntroSlide({ result, section1 }: HeroProps & { section1: string[] | null }) {
+// 3장 — 심층 리포트 앞부분: 1번 웰니스 프로파일(무료) + 전체 유형 평균 대비(결제 후에만 열리는 유료 블록).
+export function ReportIntroSlide({
+  userName,
+  title,
+  result,
+  section1,
+  comparisonUnlocked,
+  canPay,
+  onPay,
+  busy,
+}: HeroProps & { section1: string[] | null; comparisonUnlocked: boolean; canPay: boolean; onPay: () => void; busy: boolean }) {
   const dessert = DESSERT[result.typeCode];
   return (
     <>
@@ -95,22 +104,67 @@ export function ReportIntroSlide({ result, section1 }: HeroProps & { section1: s
         1. {SECTION_TITLES[0]}
       </p>
       {section1 ? (
-        section1.map((p, i) => <ReportParagraph key={i} text={p} className="type-blurb" />)
+        section1.map((p, i) => <ReportParagraph key={i} text={p} className="type-blurb" highlight="auto" />)
       ) : (
         <p className="muted pulse-text">{dessert.name}을 정성껏 굽고 있어요...</p>
       )}
+      <div className="avg-compare">
+        {comparisonUnlocked ? (
+          <AverageComparisonBlock userName={userName} title={title} result={result} />
+        ) : (
+          <AverageComparisonLocked userName={userName} title={title} canPay={canPay} onPay={onPay} busy={busy} />
+        )}
+      </div>
     </>
   );
 }
 
-// 3장 맨 앞 — 전체 유형 평균과 비교한 내 점수(그래프 + 눈에 띄는 요인 설명). 2장에 있던 것을 "나는 왜 이 유형인가"를
-// 이어서 보도록 3장으로 옮겼습니다. 점수만으로 정해지는 내용이라 결제·서버 응답을 기다리지 않고 바로 그려집니다.
+// 결제 전에는 첫 문장(이름만 들어가는 안내)만 선명하게 보이고, 그 아래는 "가짜 틀"만 흐리게 보입니다. 실제 점수 차이·그래프는
+// 결제 후에만 그려지므로(AverageComparisonBlock) 화면 코드 안에 유료 내용이 들어 있지 않습니다.
+const COMPARE_FILLER = [
+  "아래 수치는 같은 유형을 고른 사람들만의 평균이 아니라, 전체 유형의 하위요인별 평균을 기준으로 한 거예요. 평균보다 높거나 낮다고 해서 능력이 더 좋거나 나쁘다는 뜻은 아니에요.",
+  "이 그래프가 왜 이 유형으로 나왔는지를 설명해주는 근거가 되기도 해요. 그래프에서 눈에 띄는 지점을 쉬운 말로 풀어서 이어서 알려드려요.",
+];
+const SKELETON_WIDTHS = [62, 48, 70, 55, 38, 66, 44, 72, 58, 50]; // 모든 사람에게 똑같은 모양(실제 점수와 무관)
+
+export function AverageComparisonLocked({ userName, title, canPay, onPay, busy }: { userName: string; title: string; canPay: boolean; onPay: () => void; busy: boolean }) {
+  const who = title ? `${userName} ${title}님` : `${userName}님`;
+  return (
+    <div className="teaser-section">
+      <ReportParagraph text={`${who}의 테스트 결과를 전체 유형별 평균과 대비하면 다음과 같습니다.`} className="type-blurb" boldOnly />
+      <div className="teaser-blur teaser-blur-first" aria-hidden="true">
+        <p className="type-blurb">{COMPARE_FILLER[0]}</p>
+        <div className="cmp-skel">
+          {SKELETON_WIDTHS.map((w, i) => (
+            <div key={i} className="cmp-skel-row">
+              <span />
+              <i style={{ width: `${w}%` }} />
+            </div>
+          ))}
+        </div>
+        <p className="type-blurb">{COMPARE_FILLER[1]}</p>
+      </div>
+      {canPay && (
+        <div className="teaser-cta">
+          <p className="teaser-cta-title">평균과 비교한 내 위치는 결제 후 볼 수 있어요</p>
+          <p className="teaser-cta-sub">결제하면 바로 열려요 · 쏘웰라 1주일 체험권도 함께 드려요</p>
+          <button className="btn-lg" onClick={onPay} disabled={busy}>
+            {formatWon(REPORT_PRICE)}원으로 이어서 읽기
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 전체 유형 평균과 비교한 내 점수(그래프 + 눈에 띄는 요인 설명) — 결제자 전용 블록(2026-10-21 사용자 확인: 유료 보고서 내용).
+// 점수만으로 정해지는 내용이라 서버 응답을 기다리지 않고 바로 그려집니다.
 export function AverageComparisonBlock({ userName, title, result }: HeroProps) {
   const { typeCode, confirmedAxis, factorScores } = result;
   const dessert = DESSERT[typeCode];
   const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, AXIS_KR[confirmedAxis], dessert.name);
   return (
-    <div className="avg-compare">
+    <>
       {comparison.intro.map((p, i) => (
         <ReportParagraph key={i} text={p} className="type-blurb" boldOnly={i === 0} />
       ))}
@@ -118,7 +172,7 @@ export function AverageComparisonBlock({ userName, title, result }: HeroProps) {
       {comparison.deviationNote.map((p, i) => (
         <ReportParagraph key={i} text={p} className="type-blurb" />
       ))}
-    </div>
+    </>
   );
 }
 
@@ -202,6 +256,8 @@ interface SectionSlideProps {
   /** 완성된 리포트의 이 섹션 문단(phase === "ready") */
   paragraphs?: string[];
   leadInIndex?: number | null;
+  /** AI가 고른 굵게 보일 문장 [문단 번호, 문장 번호]. 없으면(예전 리포트 등) 규칙으로 고릅니다. */
+  highlights?: [number, number][] | null;
   /** 결제 전 미리보기(2~8번) */
   teaser?: TeaserSection;
   teaserFailed?: boolean;
@@ -213,7 +269,7 @@ interface SectionSlideProps {
 }
 
 // 4~10장 — 심층 리포트 2~8번
-export function SectionSlide({ num, title, phase, dessertName, paragraphs, leadInIndex = null, teaser, teaserFailed, onPay, onRetry, busy, extra }: SectionSlideProps) {
+export function SectionSlide({ num, title, phase, dessertName, paragraphs, leadInIndex = null, highlights, teaser, teaserFailed, onPay, onRetry, busy, extra }: SectionSlideProps) {
   const head = (
     <div className="teaser-head">
       <span className="r-num">{num}</span>
@@ -226,7 +282,13 @@ export function SectionSlide({ num, title, phase, dessertName, paragraphs, leadI
       <>
         {head}
         {paragraphs.map((p, i) => (
-          <ReportParagraph key={i} text={p} className="type-blurb" forceBold={i === leadInIndex} />
+          <ReportParagraph
+            key={i}
+            text={p}
+            className="type-blurb"
+            forceBold={i === leadInIndex}
+            highlight={highlights ? highlights.filter(([pi]) => pi === i).map(([, si]) => si) : "auto"}
+          />
         ))}
         {extra}
       </>

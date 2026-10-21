@@ -8,7 +8,7 @@ import MailReportModal from "@/components/result/MailReportModal";
 import PayBar from "@/components/result/PayBar";
 import PaymentConsentSheet from "@/components/result/PaymentConsentSheet";
 import ResultPager, { type PagerSlide } from "@/components/result/ResultPager";
-import { AverageComparisonBlock, ProfileSlide, ReportIntroSlide, SectionSlide, TraitsMatchSlide } from "@/components/result/ResultSlides";
+import { ProfileSlide, ReportIntroSlide, SectionSlide, TraitsMatchSlide } from "@/components/result/ResultSlides";
 import { RESULT_PAGE_COUNT } from "@/components/result/resultPages";
 import ShareSheet from "@/components/ShareSheet";
 import { guestHeaders } from "@/lib/guest/client";
@@ -26,8 +26,8 @@ import { useReportTeaser } from "@/lib/useReportTeaser";
 const SOWELLA_URL = "https://app.ssolwellnesshouse.com";
 // 2026-10-15: 마지막으로 본 장을 이 탭에 기억 — 결제창·로그인을 다녀와도 보던 장으로 돌아옵니다(점성술 앱의 "결제 후 같은 페이지로").
 const SLIDE_KEY = "ssol_result_slide_v2";
-// 무료로 읽는 1~3장(유형 정보 · 웰니스 프로파일 · 이런 사람/궁합)에는 결제 바를 보이지 않고, 유료 파트가 시작되는 4장(인덱스 3)부터 보입니다.
-const PAY_BAR_FROM_SLIDE = 3;
+// 무료로 읽는 1~2장(유형 정보 · 이런 사람/궁합)에는 결제 바를 보이지 않고, 유료 내용(평균 대비)이 처음 나오는 3장(인덱스 2)부터 보입니다.
+const PAY_BAR_FROM_SLIDE = 2;
 
 // 2026-09-25: 로그인 화면에서 "결과 저장하기" 흐름을 마치고 돌아왔을 때(/result?saved=1),
 // 저장됐다는 걸 잠깐 토스트로 알려줍니다. useSearchParams는 Suspense 경계 안에서만 정적
@@ -404,6 +404,8 @@ export default function ResultExperience({ page }: { page: number | null }) {
       </div>
     ) : null;
 
+  // AI가 고른 굵게 보일 문장이 하나라도 있으면 그것만 쓰고, 없으면(예전 리포트·선정 실패) 규칙(highlight.ts)으로 대신합니다.
+  const aiHighlights = assembled?.highlights && Object.keys(assembled.highlights).length > 0 ? assembled.highlights : null;
   const sectionSlides: PagerSlide[] = sectionMeta.map(({ num, title, key }, n) => {
     const raw = assembled?.[key];
     // 2026-09-30: 8번의 마지막 문단("이 리포트와 함께 AI 채팅 이용권이...")은 카드 안이 아니라 아래에 따로 강조해 보여줍니다.
@@ -422,6 +424,7 @@ export default function ResultExperience({ page }: { page: number | null }) {
             dessertName={dessert.name}
             paragraphs={paragraphs}
             leadInIndex={raw ? leadInIndexFor(key, paragraphs ?? []) : null}
+            highlights={aiHighlights ? aiHighlights[key] ?? [] : null}
             teaser={teaser.sections?.find((t) => t.num === num)}
             teaserFailed={teaser.failed}
             onPay={pay.requestPay}
@@ -484,19 +487,25 @@ export default function ResultExperience({ page }: { page: number | null }) {
       node: <ProfileSlide userName={userName} title={title} result={result} />,
     },
     {
-      key: "report-intro",
-      label: "웰니스 프로파일",
-      node: <ReportIntroSlide userName={userName} title={title} result={result} section1={phase === "ready" && assembled ? assembled.section1 : teaser.section1} />,
+      key: "traits",
+      label: "나의 특징과 궁합",
+      node: <TraitsMatchSlide typeCode={typeCode} confirmedAxis={confirmedAxis} onMatch={() => router.push("/match")} />,
       bottom: shareSaveRow,
     },
     {
-      key: "traits",
-      label: "나의 특징과 궁합",
+      key: "report-intro",
+      label: "웰니스 프로파일",
       node: (
-        <>
-          <AverageComparisonBlock userName={userName} title={title} result={result} />
-          <TraitsMatchSlide typeCode={typeCode} confirmedAxis={confirmedAxis} onMatch={() => router.push("/match")} />
-        </>
+        <ReportIntroSlide
+          userName={userName}
+          title={title}
+          result={result}
+          section1={phase === "ready" && assembled ? assembled.section1 : teaser.section1}
+          comparisonUnlocked={phase !== "locked" && phase !== "checking"}
+          canPay={phase === "locked"}
+          onPay={pay.requestPay}
+          busy={pay.busy}
+        />
       ),
       bottom: shareSaveRow,
     },
@@ -537,7 +546,7 @@ export default function ResultExperience({ page }: { page: number | null }) {
       <PaymentConsentSheet open={pay.consentOpen} onClose={pay.closeConsent} onConfirm={pay.confirmAndPay} />
       <MailReportModal open={mailOpen} defaultEmail={mailDefault} resultId={savedResultId} onClose={() => setMailOpen(false)} onToast={setToast} />
 
-      {/* 4장부터(심층 리포트 2번 파트부터 — 무료 장 1~3장 뒤) 결제 전이면 화면 아래에 고정되는 결제 바. 결제 확인이 끝나기 전(checking)에는 숨깁니다. */}
+      {/* 3장부터(평균 대비 등 유료 내용이 시작되는 곳 — 무료 장 1~2장 뒤) 결제 전이면 화면 아래에 고정되는 결제 바. 결제 확인이 끝나기 전(checking)에는 숨깁니다. */}
       {phase === "locked" && currentSlide >= PAY_BAR_FROM_SLIDE && (
         <>
           <div style={{ height: 84 }} aria-hidden="true" />
