@@ -84,11 +84,9 @@ export function ProfileSlide({ userName, title, result }: HeroProps) {
   );
 }
 
-// 2장 — 심층 리포트 앞부분(1번 웰니스 프로파일 + 평균 대비). 무료 공개 파트입니다.
-export function ReportIntroSlide({ userName, title, result, section1 }: HeroProps & { section1: string[] | null }) {
-  const { typeCode, confirmedAxis, factorScores } = result;
-  const dessert = DESSERT[typeCode];
-  const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, AXIS_KR[confirmedAxis], dessert.name);
+// 2장 — 심층 리포트 앞부분(1번 웰니스 프로파일). 무료 공개 파트입니다.
+export function ReportIntroSlide({ result, section1 }: HeroProps & { section1: string[] | null }) {
+  const dessert = DESSERT[result.typeCode];
   return (
     <>
       <p className="kicker kicker-sm">심층 리포트</p>
@@ -97,24 +95,30 @@ export function ReportIntroSlide({ userName, title, result, section1 }: HeroProp
         1. {SECTION_TITLES[0]}
       </p>
       {section1 ? (
-        <>
-          {section1.map((p, i) => (
-            <ReportParagraph key={i} text={p} className="type-blurb" />
-          ))}
-          <div style={{ marginTop: 24 }}>
-            {comparison.intro.map((p, i) => (
-              <ReportParagraph key={i} text={p} className="type-blurb" boldOnly={i === 0} />
-            ))}
-            <SubfactorDeviationChart individual={factorScores} indLabel={`나의 점수(${dessert.name})`} />
-            {comparison.deviationNote.map((p, i) => (
-              <ReportParagraph key={i} text={p} className="type-blurb" />
-            ))}
-          </div>
-        </>
+        section1.map((p, i) => <ReportParagraph key={i} text={p} className="type-blurb" />)
       ) : (
         <p className="muted pulse-text">{dessert.name}을 정성껏 굽고 있어요...</p>
       )}
     </>
+  );
+}
+
+// 3장 맨 앞 — 전체 유형 평균과 비교한 내 점수(그래프 + 눈에 띄는 요인 설명). 2장에 있던 것을 "나는 왜 이 유형인가"를
+// 이어서 보도록 3장으로 옮겼습니다. 점수만으로 정해지는 내용이라 결제·서버 응답을 기다리지 않고 바로 그려집니다.
+export function AverageComparisonBlock({ userName, title, result }: HeroProps) {
+  const { typeCode, confirmedAxis, factorScores } = result;
+  const dessert = DESSERT[typeCode];
+  const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, AXIS_KR[confirmedAxis], dessert.name);
+  return (
+    <div className="avg-compare">
+      {comparison.intro.map((p, i) => (
+        <ReportParagraph key={i} text={p} className="type-blurb" boldOnly={i === 0} />
+      ))}
+      <SubfactorDeviationChart individual={factorScores} indLabel={`나의 점수(${dessert.name})`} />
+      {comparison.deviationNote.map((p, i) => (
+        <ReportParagraph key={i} text={p} className="type-blurb" />
+      ))}
+    </div>
   );
 }
 

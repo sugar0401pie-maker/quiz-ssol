@@ -8,7 +8,7 @@ import MailReportModal from "@/components/result/MailReportModal";
 import PayBar from "@/components/result/PayBar";
 import PaymentConsentSheet from "@/components/result/PaymentConsentSheet";
 import ResultPager, { type PagerSlide } from "@/components/result/ResultPager";
-import { ProfileSlide, ReportIntroSlide, SectionSlide, TraitsMatchSlide } from "@/components/result/ResultSlides";
+import { AverageComparisonBlock, ProfileSlide, ReportIntroSlide, SectionSlide, TraitsMatchSlide } from "@/components/result/ResultSlides";
 import { RESULT_PAGE_COUNT } from "@/components/result/resultPages";
 import ShareSheet from "@/components/ShareSheet";
 import { guestHeaders } from "@/lib/guest/client";
@@ -431,6 +431,13 @@ export default function ResultExperience({ page }: { page: number | null }) {
               isLast && phase === "ready" && assembled && assembled.section8.length > 0 ? (
                 <div className="section8-highlight">
                   <p>{assembled.section8[assembled.section8.length - 1]}</p>
+                  {/* 2026-10-21: 쏘웰라 이용권 안내 문단 바로 아래, 같은 테두리 안에 이동 버튼을 둡니다(요청). */}
+                  <a className="link-btn-lg report-actions-sowella" href={SOWELLA_URL}>
+                    AI 기반 웰니스 채팅 쏘웰라로 이동하기
+                  </a>
+                  <p className="tiny" style={{ textAlign: "center", margin: "8px 0 0", fontWeight: 400, fontSize: 12.5, color: "var(--text3)" }}>
+                    가입하신 계정으로 쏘웰라를 그대로 이용하실 수 있어요.
+                  </p>
                 </div>
               ) : null
             }
@@ -442,12 +449,6 @@ export default function ResultExperience({ page }: { page: number | null }) {
                   <button className="secondary" style={{ width: "100%" }} onClick={() => setMailOpen(true)}>
                     메일로 보내기
                   </button>
-                  <p className="tiny" style={{ textAlign: "center", margin: "10px 0 8px" }}>
-                    가입하신 계정으로 쏘웰라를 그대로 이용하실 수 있어요.
-                  </p>
-                  <a className="link-btn-lg report-actions-sowella" href={SOWELLA_URL}>
-                    AI 기반 웰니스 채팅 쏘웰라로 이동하기
-                  </a>
                 </>
               )}
               <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={() => router.push("/history")}>
@@ -490,8 +491,13 @@ export default function ResultExperience({ page }: { page: number | null }) {
     },
     {
       key: "traits",
-      label: "나와 잘 맞는 유형",
-      node: <TraitsMatchSlide typeCode={typeCode} confirmedAxis={confirmedAxis} onMatch={() => router.push("/match")} />,
+      label: "나의 특징과 궁합",
+      node: (
+        <>
+          <AverageComparisonBlock userName={userName} title={title} result={result} />
+          <TraitsMatchSlide typeCode={typeCode} confirmedAxis={confirmedAxis} onMatch={() => router.push("/match")} />
+        </>
+      ),
       bottom: shareSaveRow,
     },
     ...sectionSlides,

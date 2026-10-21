@@ -185,6 +185,7 @@ button:active { transform: scale(0.98); }
   border: 1.5px solid var(--navy); border-radius: 14px; padding: 14px 16px; margin: 4px 0 20px;
 }
 .section8-highlight p { margin: 0; color: var(--ink); font-weight: 700; font-size: 15px; line-height: 1.7; }
+.section8-highlight a.link-btn-lg { margin-top: 14px; }
 .text-link {
   background: none; border: none; padding: 0; margin: 0; width: auto; display: inline;
   font-size: 12.5px; color: var(--text3); text-decoration: underline; cursor: pointer;
@@ -218,8 +219,9 @@ button:active { transform: scale(0.98); }
 .traits li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--navy); flex-shrink: 0; }
 /* 2026-10-06: '내 결과 공유하기'/'결과 저장하기' 글자 크기를 바로 아래 '다시 해보기'(기본 버튼 16px)와 같게 맞췄다.
    16px에서는 두 버튼이 한 줄에 못 들어가 라벨이 꺾이므로, 아래 버튼들처럼 한 줄씩 가로로 꽉 차게 쌓는다. */
-.share-row { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-.share-row button { font-size: 16px; padding: 12px 20px; }
+/* 2026-10-21: "내 결과 공유하기 / 결과 저장하기"를 한 줄에 나란히(버튼이 하나뿐인 화면에서는 가로로 꽉 참). */
+.share-row { display: flex; flex-direction: row; gap: 8px; margin-top: 10px; }
+.share-row button { flex: 1 1 0; min-width: 0; font-size: 16px; padding: 12px 8px; white-space: nowrap; }
 .share-row button.kakao-share {
   background: #FEE500; border-color: #FEE500; color: #3A2E1F;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -423,3 +425,6 @@ button:active { transform: scale(0.98); }
 .guest-notice { margin-bottom: 18px; }
 /* 스와이프 칸 안에서는 캐릭터 그림을 카드 가장자리까지 늘리지 않고(옆 장으로 번져 보임) 칸 폭에 맞춥니다. */
 .pager-slide .res-avatar { width: 100%; margin: 0 0 16px; height: 340px; border-radius: 20px; }
+
+/* 3장 평균 대비 블록과 아래 "이런 사람" 사이 간격·구분선 */
+.avg-compare { margin-bottom: 26px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
