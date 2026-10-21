@@ -42,7 +42,7 @@ export default function IntroPage() {
           className="tiny social-proof"
           style={{ margin: "0 0 12px", textAlign: "center", color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.55), 0 0 2px rgba(0,0,0,0.4)" }}
         >
-          🍰 벌써 1,524명이 참여했어요
+          🍰 벌써 2,391명이 참여했어요
         </p>
         <button
           className="btn-lg"
