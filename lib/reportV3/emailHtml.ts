@@ -4,6 +4,7 @@ import { resolveIconKey } from "../icons";
 import { EUL_REUL } from "../josa";
 import { buildAverageComparisonText } from "./averageComparison";
 import { splitBoldParagraph } from "./boldParagraph";
+import { highlightBySentenceIndex, highlightKeySentence } from "./highlight";
 import type { GeneratedSectionsV3 } from "./types";
 import { leadInIndexFor } from "./uiSections";
 
@@ -49,9 +50,16 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 // 공유합니다(화면과 메일에서 같은 부분이 굵게 보이도록) — 두괄식 요약 문단(규칙 17)도
 // leadInIndexFor()로 화면과 똑같이 찾아서 굵게 표시합니다.
 const PARA_STYLE = `margin:0 0 10px;font-size:14px;line-height:1.7;color:${COLOR_INK};`;
-function renderParagraph(p: string, forceBold: boolean): string {
+// 2026-10-22: hl — 화면(components/ReportParagraph.tsx)과 같은 "요약·결론 문장 굵게": 문장 번호 목록(AI가 고른 것) 또는 "auto"(규칙).
+function renderParagraph(p: string, forceBold: boolean, hl?: number[] | "auto"): string {
   const { boldText, restText } = splitBoldParagraph(p, forceBold);
-  if (!boldText) return `<p style="${PARA_STYLE}">${esc(p)}</p>`;
+  if (!boldText) {
+    const parts = hl === "auto" ? highlightKeySentence(p) : hl && hl.length ? highlightBySentenceIndex(p, hl) : null;
+    if (parts && parts.some((x) => x.bold)) {
+      return `<p style="${PARA_STYLE}">${parts.map((x) => (x.bold ? `<strong>${esc(x.text)}</strong>` : esc(x.text))).join("")}</p>`;
+    }
+    return `<p style="${PARA_STYLE}">${esc(p)}</p>`;
+  }
   return `<p style="${PARA_STYLE}"><strong>${esc(boldText)}</strong>${esc(restText)}</p>`;
 }
 
@@ -65,9 +73,16 @@ function renderHighlightBox(p: string): string {
 // 화면의 .report-section-preview 카드(번호 원 배지 + 제목)와 같은 모양. <table>로
 // 배지·제목을 나란히 두는 건 flexbox 지원이 들쑥날쑥한 이메일 클라이언트에서 가장
 // 안전하게 통하는 레이아웃 방법입니다.
-function renderSectionCard(num: number, title: string, paragraphs: string[], leadInIdx: number | null, highlightLast: boolean): string {
+function renderSectionCard(
+  num: number,
+  title: string,
+  paragraphs: string[],
+  leadInIdx: number | null,
+  highlightLast: boolean,
+  hlFor: (paragraphIndex: number) => number[] | "auto"
+): string {
   const bodyHtml = paragraphs
-    .map((p, i) => (highlightLast && i === paragraphs.length - 1 ? renderHighlightBox(p) : renderParagraph(p, i === leadInIdx)))
+    .map((p, i) => (highlightLast && i === paragraphs.length - 1 ? renderHighlightBox(p) : renderParagraph(p, i === leadInIdx, hlFor(i))))
     .join("");
 
   return `<div style="border:1px solid ${COLOR_BORDER};border-radius:14px;padding:14px 16px;margin-bottom:14px;background:${COLOR_CARD_BG};">
@@ -117,7 +132,8 @@ export function buildReportEmailHtml(
     <h1 style="font-size:20px;margin:0 0 12px;color:${COLOR_INK};">${esc(dessert.name)}의 웰니스 이야기</h1>
     <img src="${radarImageUrl(axisScores)}" alt="다섯 영역 오각형 그래프" width="295" height="195" style="width:295px;max-width:100%;display:block;margin:0 auto;" />
   </div>`;
-  body += renderSectionCard(1, titles.section1, assembled.section1 ?? [], leadInIndexFor("section1", assembled.section1 ?? []), false);
+  // 섹션 1은 AI가 아닌 서버 조립이라 규칙("auto")으로 요약 문장(영역 순위 등)을 굵게.
+  body += renderSectionCard(1, titles.section1, assembled.section1 ?? [], leadInIndexFor("section1", assembled.section1 ?? []), false, () => "auto");
 
   // 2026-10-01: 심층보고서 결제자 전용 "전체 유형 평균 대비" 블록 — 섹션 1 바로 아래,
   // 섹션 2가 시작되기 전에 넣습니다(화면 app/result/report/view/page.tsx와 같은 위치).
@@ -131,10 +147,15 @@ export function buildReportEmailHtml(
     <img src="${deviationImageUrl(factorScores, `나의 점수(${esc(dessert.name)})`)}" alt="하위요인별 평균 대비 내 위치 그래프" width="700" style="width:100%;max-width:700px;display:block;margin:4px auto 0;" />
   </div>`;
 
+  const aiHighlights = assembled.highlights && Object.keys(assembled.highlights).length > 0 ? assembled.highlights : null;
   SECTION_KEYS.filter((key) => key !== "section1").forEach((key, idx) => {
     const paragraphs = assembled[key] ?? [];
     const leadInIdx = leadInIndexFor(key, paragraphs);
-    body += renderSectionCard(idx + 2, titles[key], paragraphs, leadInIdx, key === "section8");
+    // AI가 고른 문장 위치가 있으면 그것만, 없으면(예전 리포트·선정 실패) 규칙으로 — 화면(ResultExperience)과 같은 판정.
+    const picks = aiHighlights ? aiHighlights[key as keyof typeof aiHighlights] ?? [] : null;
+    body += renderSectionCard(idx + 2, titles[key], paragraphs, leadInIdx, key === "section8", (pi) =>
+      picks ? picks.filter(([p]) => p === pi).map(([, si]) => si) : "auto"
+    );
   });
 
   // 2026-10-05: 메일 맨 아래에 AI 채팅(쏘웰라, app.ssolwellnesshouse.com)으로 가는 버튼 한 개.
