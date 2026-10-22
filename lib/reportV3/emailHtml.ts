@@ -135,16 +135,17 @@ export function buildReportEmailHtml(
   // 섹션 1은 AI가 아닌 서버 조립이라 규칙("auto")으로 요약 문장(영역 순위 등)을 굵게.
   body += renderSectionCard(1, titles.section1, assembled.section1 ?? [], leadInIndexFor("section1", assembled.section1 ?? []), false, () => "auto");
 
-  // 2026-10-01: 심층보고서 결제자 전용 "전체 유형 평균 대비" 블록 — 섹션 1 바로 아래,
-  // 섹션 2가 시작되기 전에 넣습니다(화면 app/result/report/view/page.tsx와 같은 위치).
+  // 2026-10-22: 화면(결과 4장)과 같은 구성 — 웰니스 프로파일과 섹션 2 사이에 "{닉네임}님이 {유형}인 이유" 카드를 따로 둡니다.
+  // 순서도 화면과 같게: 안내 문단(intro) → 하위요인 평균 대비 그래프 → 눈에 띄는 요인 설명(deviationNote).
+  // intro[0]("~를 전체 유형별 평균과 대비하면 다음과 같습니다.")만 굵게.
   const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, axisKR, dessert.name);
-  // intro[0]("~를 전체 유형별 평균과 대비하면 다음과 같습니다.")만 굵게 — 화면(view/page.tsx)과 같게.
-  const comparisonParas = [...comparison.intro, ...comparison.deviationNote]
-    .map((p, i) => renderParagraph(p, i === 0))
-    .join("");
-  body += `<div style="margin:0 0 14px;">
-    ${comparisonParas}
-    <img src="${deviationImageUrl(factorScores, `나의 점수(${esc(dessert.name)})`)}" alt="하위요인별 평균 대비 내 위치 그래프" width="700" style="width:100%;max-width:700px;display:block;margin:4px auto 0;" />
+  const introParas = comparison.intro.map((p, i) => renderParagraph(p, i === 0)).join("");
+  const noteParas = comparison.deviationNote.map((p) => renderParagraph(p, false)).join("");
+  body += `<div style="border:1px solid ${COLOR_BORDER};border-radius:14px;padding:14px 16px;margin-bottom:14px;background:${COLOR_CARD_BG};">
+    <p style="margin:0 0 10px;font-size:15px;font-weight:700;color:${COLOR_INK};">${esc(userName)}님이 ${esc(dessert.name)}인 이유</p>
+    ${introParas}
+    <img src="${deviationImageUrl(factorScores, `나의 점수(${esc(dessert.name)})`)}" alt="하위요인별 평균 대비 내 위치 그래프" width="700" style="width:100%;max-width:700px;display:block;margin:4px auto 10px;" />
+    ${noteParas}
   </div>`;
 
   const aiHighlights = assembled.highlights && Object.keys(assembled.highlights).length > 0 ? assembled.highlights : null;
