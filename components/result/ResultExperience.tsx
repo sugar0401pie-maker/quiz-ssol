@@ -8,7 +8,7 @@ import MailReportModal from "@/components/result/MailReportModal";
 import PayBar from "@/components/result/PayBar";
 import PaymentConsentSheet from "@/components/result/PaymentConsentSheet";
 import ResultPager, { type PagerSlide } from "@/components/result/ResultPager";
-import { ProfileSlide, ReportIntroSlide, SectionSlide, TraitsMatchSlide } from "@/components/result/ResultSlides";
+import { ProfileSlide, ReportIntroSlide, SectionSlide, TraitsMatchSlide, TypeReasonSlide } from "@/components/result/ResultSlides";
 import { RESULT_PAGE_COUNT } from "@/components/result/resultPages";
 import ShareSheet from "@/components/ShareSheet";
 import { guestHeaders } from "@/lib/guest/client";
@@ -26,8 +26,8 @@ import { useReportTeaser } from "@/lib/useReportTeaser";
 const SOWELLA_URL = "https://app.ssolwellnesshouse.com";
 // 2026-10-15: 마지막으로 본 장을 이 탭에 기억 — 결제창·로그인을 다녀와도 보던 장으로 돌아옵니다(점성술 앱의 "결제 후 같은 페이지로").
 const SLIDE_KEY = "ssol_result_slide_v2";
-// 무료로 읽는 1~2장(유형 정보 · 이런 사람/궁합)에는 결제 바를 보이지 않고, 유료 내용(평균 대비)이 처음 나오는 3장(인덱스 2)부터 보입니다.
-const PAY_BAR_FROM_SLIDE = 2;
+// 무료로 읽는 1~2장(유형 정보 · 이런 사람/궁합)에는 결제 바를 보이지 않고, 유료 내용(평균 대비)이 처음 나오는 4장(인덱스 3, "유형인 이유")부터 보입니다.
+const PAY_BAR_FROM_SLIDE = 3;
 
 // 2026-09-25: 로그인 화면에서 "결과 저장하기" 흐름을 마치고 돌아왔을 때(/result?saved=1),
 // 저장됐다는 걸 잠깐 토스트로 알려줍니다. useSearchParams는 Suspense 경계 안에서만 정적
@@ -501,7 +501,19 @@ export default function ResultExperience({ page }: { page: number | null }) {
           title={title}
           result={result}
           section1={phase === "ready" && assembled ? assembled.section1 : teaser.section1}
-          comparisonUnlocked={phase !== "locked" && phase !== "checking"}
+        />
+      ),
+      bottom: shareSaveRow,
+    },
+    {
+      key: "type-reason",
+      label: "유형인 이유",
+      node: (
+        <TypeReasonSlide
+          userName={userName}
+          title={title}
+          result={result}
+          unlocked={phase !== "locked" && phase !== "checking"}
           canPay={phase === "locked"}
           onPay={pay.requestPay}
           busy={pay.busy}

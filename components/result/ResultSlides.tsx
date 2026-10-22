@@ -20,6 +20,7 @@ import {
   type ModeKey,
   type TypeCode,
 } from "@/lib/data";
+import { splitSentencePieces } from "@/lib/reportV3/highlight";
 import { resolveIconKey } from "@/lib/icons";
 import { splitIntoParagraphs } from "@/lib/paragraphSplit";
 import { REPORT_PRICE, formatWon } from "@/lib/pricing";
@@ -84,17 +85,8 @@ export function ProfileSlide({ userName, title, result }: HeroProps) {
   );
 }
 
-// 3장 — 심층 리포트 앞부분: 1번 웰니스 프로파일(무료) + 전체 유형 평균 대비(결제 후에만 열리는 유료 블록).
-export function ReportIntroSlide({
-  userName,
-  title,
-  result,
-  section1,
-  comparisonUnlocked,
-  canPay,
-  onPay,
-  busy,
-}: HeroProps & { section1: string[] | null; comparisonUnlocked: boolean; canPay: boolean; onPay: () => void; busy: boolean }) {
+// 3장 — 심층 리포트 앞부분: 1번 웰니스 프로파일(무료).
+export function ReportIntroSlide({ result, section1 }: HeroProps & { section1: string[] | null }) {
   const dessert = DESSERT[result.typeCode];
   return (
     <>
@@ -108,32 +100,26 @@ export function ReportIntroSlide({
       ) : (
         <p className="muted pulse-text">{dessert.name}을 정성껏 굽고 있어요...</p>
       )}
-      <div className="avg-compare">
-        {comparisonUnlocked ? (
-          <AverageComparisonBlock userName={userName} title={title} result={result} />
-        ) : (
-          <AverageComparisonLocked userName={userName} title={title} canPay={canPay} onPay={onPay} busy={busy} />
-        )}
-      </div>
     </>
   );
 }
 
-// 결제 전에는 첫 문장(이름만 들어가는 안내)만 선명하게 보이고, 그 아래는 "가짜 틀"만 흐리게 보입니다. 실제 점수 차이·그래프는
-// 결제 후에만 그려지므로(AverageComparisonBlock) 화면 코드 안에 유료 내용이 들어 있지 않습니다.
+// 결제 전에는 "이 그래프는 …" 문장부터 블러로 가려집니다. 이 문단의 뒷부분에는 내 실제 요인(예: 가치 명료성이 높은 편)이 들어 있어서
+// 블러 속에는 이름·유형만 들어간 첫 문장만 실제 글로 쓰고, 나머지는 모든 사람에게 같은 일반 문장과 가짜 그래프 틀로 채웁니다
+// (실제 점수 차이·그래프는 결제 후에만 그려지므로 화면 코드 안에 유료 내용이 들어 있지 않습니다).
 const COMPARE_FILLER = [
-  "아래 수치는 같은 유형을 고른 사람들만의 평균이 아니라, 전체 유형의 하위요인별 평균을 기준으로 한 거예요. 평균보다 높거나 낮다고 해서 능력이 더 좋거나 나쁘다는 뜻은 아니에요.",
-  "이 그래프가 왜 이 유형으로 나왔는지를 설명해주는 근거가 되기도 해요. 그래프에서 눈에 띄는 지점을 쉬운 말로 풀어서 이어서 알려드려요.",
+  "그래프에서 눈에 띄는 지점을 쉬운 말로 풀어서 알려드려요. 어떤 요인이 평균과 달랐는지, 그 차이가 확정된 영역과 어떻게 이어지는지를 이어서 확인할 수 있어요.",
+  "평균과 가장 다르게 나온 지점은 어디인지, 그것이 일상에서는 어떤 모습으로 나타나는지도 함께 짚어드려요.",
 ];
 const SKELETON_WIDTHS = [62, 48, 70, 55, 38, 66, 44, 72, 58, 50]; // 모든 사람에게 똑같은 모양(실제 점수와 무관)
 
-export function AverageComparisonLocked({ userName, title, canPay, onPay, busy }: { userName: string; title: string; canPay: boolean; onPay: () => void; busy: boolean }) {
-  const who = title ? `${userName} ${title}님` : `${userName}님`;
+function ReasonLocked({ firstSentence, canPay, onPay, busy }: { firstSentence: string; canPay: boolean; onPay: () => void; busy: boolean }) {
   return (
     <div className="teaser-section">
-      <ReportParagraph text={`${who}의 테스트 결과를 전체 유형별 평균과 대비하면 다음과 같습니다.`} className="type-blurb" boldOnly />
       <div className="teaser-blur teaser-blur-first" aria-hidden="true">
-        <p className="type-blurb">{COMPARE_FILLER[0]}</p>
+        <p className="type-blurb">
+          {firstSentence} {COMPARE_FILLER[0]}
+        </p>
         <div className="cmp-skel">
           {SKELETON_WIDTHS.map((w, i) => (
             <div key={i} className="cmp-skel-row">
@@ -146,7 +132,7 @@ export function AverageComparisonLocked({ userName, title, canPay, onPay, busy }
       </div>
       {canPay && (
         <div className="teaser-cta">
-          <p className="teaser-cta-title">평균과 비교한 내 위치는 결제 후 볼 수 있어요</p>
+          <p className="teaser-cta-title">내가 왜 이 유형인지는 결제 후 볼 수 있어요</p>
           <p className="teaser-cta-sub">결제하면 바로 열려요 · 쏘웰라 1주일 체험권도 함께 드려요</p>
           <button className="btn-lg" onClick={onPay} disabled={busy}>
             {formatWon(REPORT_PRICE)}원으로 이어서 읽기
@@ -157,21 +143,38 @@ export function AverageComparisonLocked({ userName, title, canPay, onPay, busy }
   );
 }
 
-// 전체 유형 평균과 비교한 내 점수(그래프 + 눈에 띄는 요인 설명) — 결제자 전용 블록(2026-10-21 사용자 확인: 유료 보고서 내용).
-// 점수만으로 정해지는 내용이라 서버 응답을 기다리지 않고 바로 그려집니다.
-export function AverageComparisonBlock({ userName, title, result }: HeroProps) {
+// 4장 — "{닉네임}님이 {유형}인 이유": 전체 유형 평균 대비. 안내 두 문단은 무료, "이 그래프는 …" 문장부터(그래프·점수 설명)는 결제 후.
+export function TypeReasonSlide({
+  userName,
+  title,
+  result,
+  unlocked,
+  canPay,
+  onPay,
+  busy,
+}: HeroProps & { unlocked: boolean; canPay: boolean; onPay: () => void; busy: boolean }) {
   const { typeCode, confirmedAxis, factorScores } = result;
   const dessert = DESSERT[typeCode];
   const comparison = buildAverageComparisonText(userName, title, factorScores, confirmedAxis, AXIS_KR[confirmedAxis], dessert.name);
+  const [lead, explain, why] = comparison.intro;
   return (
     <>
-      {comparison.intro.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" boldOnly={i === 0} />
-      ))}
-      <SubfactorDeviationChart individual={factorScores} indLabel={`나의 점수(${dessert.name})`} />
-      {comparison.deviationNote.map((p, i) => (
-        <ReportParagraph key={i} text={p} className="type-blurb" />
-      ))}
+      <h1 className="serif" style={{ marginTop: 4 }}>
+        {userName}님이 {dessert.name}인 이유
+      </h1>
+      <ReportParagraph text={lead} className="type-blurb" boldOnly />
+      <ReportParagraph text={explain} className="type-blurb" />
+      {unlocked ? (
+        <>
+          <ReportParagraph text={why} className="type-blurb" />
+          <SubfactorDeviationChart individual={factorScores} indLabel={`나의 점수(${dessert.name})`} />
+          {comparison.deviationNote.map((p, i) => (
+            <ReportParagraph key={i} text={p} className="type-blurb" />
+          ))}
+        </>
+      ) : (
+        <ReasonLocked firstSentence={splitSentencePieces(why)[0].trim()} canPay={canPay} onPay={onPay} busy={busy} />
+      )}
     </>
   );
 }
