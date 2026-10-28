@@ -60,11 +60,13 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
   // 결과 화면은 응답 상태(메모리)에 의존하므로, 공유 링크는 테스트 시작 주소(사이트 루트)를 사용합니다.
   // TODO: 2단계에서 실제 연동 — 결과 저장 후 결과별 공유 URL(/r/[id])과 OG 이미지로 교체
   const shareUrl = typeof window !== "undefined" ? window.location.origin + "/" : "";
+  // 2026-10-28: 공유 링크에 채널 표시(utm)를 붙여, 친구가 어느 경로로 퍼뜨렸는지(카카오·인스타·링크 복사 …) 유입 통계에서 구분한다.
+  const linkFor = (channel: string) => shareUrl + "?utm_source=share&utm_medium=" + channel;
 
   // 링크 복사로 대신할 때 공통으로 쓰는 함수.
-  const linkCopyFallback = async (message: string) => {
+  const linkCopyFallback = async (message: string, channel = "copy") => {
     try {
-      await copyText(shareText + " " + shareUrl);
+      await copyText(shareText + " " + linkFor(channel));
       onToast(message);
     } catch {
       onToast("복사에 실패했어요. 잠시 후 다시 시도해주세요.");
@@ -91,9 +93,9 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
           title: `${dessert.name} · ${TYPE_LINE2[typeCode]}`,
           description: shareText,
           imageUrl: shareUrl.replace(/\/$/, "") + `/images/profiles/profile-${resolveIconKey(dessert.icon)}.jpg`,
-          link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
+          link: { mobileWebUrl: linkFor("kakao"), webUrl: linkFor("kakao") },
         },
-        buttons: [{ title: "나도 테스트하기", link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }],
+        buttons: [{ title: "나도 테스트하기", link: { mobileWebUrl: linkFor("kakao"), webUrl: linkFor("kakao") } }],
       });
       kakaoBoundRef.current = true;
     } catch (err) {
@@ -110,12 +112,12 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
       setTimeout(onClose, 250);
       return;
     }
-    await linkCopyFallback("카카오톡 공유는 준비 중이에요. 대신 링크가 복사됐어요 — 카카오톡에 붙여넣어 보내보세요.");
+    await linkCopyFallback("카카오톡 공유는 준비 중이에요. 대신 링크가 복사됐어요 — 카카오톡에 붙여넣어 보내보세요.", "kakao");
   };
 
   const copyResultLink = async () => {
     try {
-      await copyText(shareText + " " + shareUrl);
+      await copyText(shareText + " " + linkFor("copy"));
       onToast("링크가 복사됐어요.");
     } catch {
       onToast("복사에 실패했어요.");
@@ -125,15 +127,15 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
 
   const shareToNaverBlog = () => {
     const url =
-      "https://share.naver.com/web/shareView?url=" + encodeURIComponent(shareUrl) + "&title=" + encodeURIComponent(shareText);
+      "https://share.naver.com/web/shareView?url=" + encodeURIComponent(linkFor("naver")) + "&title=" + encodeURIComponent(shareText);
     window.open(url, "_blank");
     onClose();
   };
 
   const shareToTwitter = () => {
     const webUrl =
-      "https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText) + "&url=" + encodeURIComponent(shareUrl);
-    const appUrl = "twitter://post?message=" + encodeURIComponent(shareText + " " + shareUrl);
+      "https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText) + "&url=" + encodeURIComponent(linkFor("twitter"));
+    const appUrl = "twitter://post?message=" + encodeURIComponent(shareText + " " + linkFor("twitter"));
     openAppOrWeb(appUrl, webUrl);
     onClose();
   };
@@ -175,7 +177,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
 
   const instagramCopyFallback = async () => {
     try {
-      await copyText(shareText + " " + shareUrl);
+      await copyText(shareText + " " + linkFor("instagram"));
       onToast("공유 문구가 복사됐어요. 인스타그램에서 붙여넣어 올려보세요.");
     } catch {
       onToast("인스타그램 앱을 열게요. 문구는 직접 입력해주세요.");
@@ -186,7 +188,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
 
   const shareToInstagram = () => {
     const file = shareImageRef.current;
-    const data: ShareData | null = file ? { files: [file], text: shareText + " " + shareUrl } : null;
+    const data: ShareData | null = file ? { files: [file], text: shareText + " " + linkFor("instagram") } : null;
     const canShareFiles = !!data && typeof navigator !== "undefined" && typeof navigator.share === "function" && !!navigator.canShare?.(data);
     if (!data || !canShareFiles) {
       void instagramCopyFallback();
@@ -194,7 +196,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
     }
     // 클릭과 같은 순간에 시작해야 한다(share는 await 없이 바로 호출). 링크 복사는 동시에 시작해 둔다.
     // 스토리의 링크 스티커에 그대로 붙여넣을 수 있도록 문구 없이 링크만 복사한다(문구는 카드 이미지 안에 있다).
-    const copied = copyText(shareUrl).then(
+    const copied = copyText(linkFor("instagram")).then(
       () => true,
       () => false
     );
@@ -227,7 +229,7 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
   // 한 번에 받는다(이미지가 있으면 인스타 스토리·피드는 글을 버리기 때문에 이 버튼은 일부러 이미지 없이 보낸다).
   // 공유 창을 못 쓰는 환경에서는 같은 문구를 복사한다.
   const sendLink = () => {
-    const text = shareText + "\n" + shareUrl;
+    const text = shareText + "\n" + linkFor("send");
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       navigator
         .share({ text })
@@ -238,11 +240,11 @@ export default function ShareSheet({ typeCode, onClose, onToast }: Props) {
             return;
           }
           console.error("링크 보내기 실패:", err);
-          void linkCopyFallback("공유 창을 열지 못해 링크를 복사했어요. 원하는 곳에 붙여넣어 보내보세요.");
+          void linkCopyFallback("공유 창을 열지 못해 링크를 복사했어요. 원하는 곳에 붙여넣어 보내보세요.", "send");
         });
       return;
     }
-    void linkCopyFallback("링크가 복사됐어요. 원하는 곳에 붙여넣어 보내보세요.");
+    void linkCopyFallback("링크가 복사됐어요. 원하는 곳에 붙여넣어 보내보세요.", "send");
   };
 
   return (

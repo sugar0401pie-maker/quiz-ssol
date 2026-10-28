@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Gaegu, Noto_Sans_KR } from "next/font/google";
 import AuthFooterLink from "@/components/AuthFooterLink";
+import AttributionCapture from "@/components/AttributionCapture";
 import GuestClaim from "@/components/GuestClaim";
 import KakaoInit from "@/components/KakaoInit";
 import { QuizProvider } from "@/lib/QuizContext";
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <KakaoInit />
         <GuestClaim />
+        <AttributionCapture />
         <QuizProvider>
           <div className="app">
             {children}
