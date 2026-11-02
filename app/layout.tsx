@@ -5,14 +5,22 @@ import AttributionCapture from "@/components/AttributionCapture";
 import GuestClaim from "@/components/GuestClaim";
 import KakaoInit from "@/components/KakaoInit";
 import { QuizProvider } from "@/lib/QuizContext";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 // Gaegu: 유형 이름(궁합 카드 포함)에만 사용 / Noto Sans KR: 그 외 모든 텍스트
 const gaegu = Gaegu({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-gaegu", display: "swap" });
 const noto = Noto_Sans_KR({ weight: ["400", "500"], subsets: ["latin"], variable: "--font-noto", display: "swap" });
 
+// 2026-11-02: 검색·공유 미리보기 기본 정보. canonical·openGraph.url은 페이지마다 달라서 공개 페이지가 각자 정합니다(홈: app/page.tsx).
+// 결과·결제 등 비공개 화면은 각 폴더 layout.tsx에서 noindex로 덮어씁니다.
 export const metadata: Metadata = {
-  title: "티파티에 초대받은 내가 디저트?! · 쏠 웰니스",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  robots: { index: true, follow: true },
+  openGraph: { type: "website", title: SITE_TITLE, description: SITE_DESCRIPTION, siteName: SITE_NAME, locale: "ko_KR" },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
