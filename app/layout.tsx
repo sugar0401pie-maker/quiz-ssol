@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   robots: { index: true, follow: true },
+  // Bing 웹마스터 사이트 소유 확인 — 확인 후에도 지우면 안 됩니다.
+  verification: { other: { "msvalidate.01": "5F7F74F02C08FB70A6A250B0DB0A7ADF" } },
   openGraph: { type: "website", title: SITE_TITLE, description: SITE_DESCRIPTION, siteName: SITE_NAME, locale: "ko_KR" },
   twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
 };
