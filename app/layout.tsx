@@ -43,7 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <a href="/legal#terms" target="_blank" rel="noopener noreferrer">이용약관</a>
               </p>
               <p className="tiny" style={{ margin: "4px 0 0" }}>
-                쏠 웰니스 하우스 · 대표 김준석 · 사업자등록번호 572-07-03549 · 통신사업자신고번호 2026-서울마포-2770
+                쏠 웰니스 하우스 · 대표 김준석 · 사업자등록번호 572-07-03549 · 통신판매업신고번호 2026-서울마포-2770
                 <br />
                 서울시 마포구 독막로 100 4층 408호 · 연락처 010-2835-2263 · contact@ssolwellness.com
               </p>
