@@ -12,7 +12,7 @@ export const SITE_CHANNELS = [
 ];
 export const SITE_TITLE = "티파티에 초대받은 내가 디저트?! · 쏠 웰니스"; // 기존 제목 유지
 export const SITE_DESCRIPTION =
-  "전문 심리상담사가 만든 자기이해 웰니스 테스트. 지금의 고민 영역과 대처 방식을 디저트 유형으로 알아보세요. 진단·치료를 대신하지 않습니다.";
+  "이세계에서 난 사실.. 티라미수..!? 15가지 디저트 유형 중 당신이 어디에 해당하는지 무료로 알아보세요. 요새 머릿속에 맴도는 고민을 딱! 집어드릴게요. 나를 좀 더 이해하고 싶다면, 지금 바로 시작해보세요.";
 
 /** 검색 결과에 나오면 안 되는 페이지(테스트 진행·결과·결제·로그인·공유 등)에 쓰는 메타데이터. */
 export const NOINDEX: Metadata = { robots: { index: false, follow: false } };
