@@ -150,7 +150,7 @@ export default function AboutPage() {
       <p>
         테스트가 끝나면 결과를 바탕으로 AI 웰니스 상담 쏘웰라와 이야기를 이어갈 수 있어요. 가입하면 3일 무료로 써볼 수 있고, 심층 보고서를
         결제하면 7일 이용권을 함께 받아요. 쏘웰라는 테스트 결과와 처음 알려준 이야기를 반영해서 첫 인사를 건네요.{" "}
-        <a href="https://www.ssolwellnesshouse.com/ssowella.html">쏘웰라 자세히 보기</a>
+        <a href="https://www.ssolwellnesshouse.com/about.html">쏘웰라 자세히 보기</a>
       </p>
 
       <Cta />
