@@ -7,6 +7,7 @@ const LEGAL_UPDATED = new Date("2026-10-16"); // 약관·방침 시행일
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 },
+    { url: `${SITE_URL}/about`, lastModified: new Date("2026-11-04"), changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/legal`, lastModified: LEGAL_UPDATED, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/terms`, lastModified: LEGAL_UPDATED, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/privacy`, lastModified: LEGAL_UPDATED, changeFrequency: "yearly", priority: 0.3 },
