@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   robots: { index: true, follow: true },
-  // Bing 웹마스터 사이트 소유 확인 — 확인 후에도 지우면 안 됩니다.
-  verification: { other: { "msvalidate.01": "5F7F74F02C08FB70A6A250B0DB0A7ADF" } },
+  // Bing 웹마스터·네이버 서치어드바이저 사이트 소유 확인 — 확인 후에도 지우면 안 됩니다.
+  verification: { other: { "msvalidate.01": "5F7F74F02C08FB70A6A250B0DB0A7ADF", "naver-site-verification": "5745801edc0cdfb62153a2c410c9fc743f8d73e6" } },
   openGraph: { type: "website", title: SITE_TITLE, description: SITE_DESCRIPTION, siteName: SITE_NAME, locale: "ko_KR" },
   twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
 };
