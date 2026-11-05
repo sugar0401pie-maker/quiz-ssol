@@ -8,7 +8,7 @@ const LEGAL_UPDATED = new Date("2026-10-16"); // 약관·방침 시행일
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 },
-    { url: `${SITE_URL}/about`, lastModified: new Date("2026-11-04"), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/about`, lastModified: new Date("2026-11-05"), changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/types`, lastModified: new Date("2026-11-05"), changeFrequency: "monthly", priority: 0.8 },
     ...["career", "romance", "relationships", "self", "life"].map((a) => ({ url: `${SITE_URL}/types/area/${a}`, lastModified: new Date("2026-11-05"), changeFrequency: "monthly" as const, priority: 0.7 })),
     ...TYPE_POSTS.map((p) => ({ url: `${SITE_URL}/types/${p.slug}`, lastModified: new Date("2026-11-05"), changeFrequency: "monthly" as const, priority: 0.7 })),
