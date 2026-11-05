@@ -45,7 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <a href="/legal#terms" target="_blank" rel="noopener noreferrer">이용약관</a>
               </p>
               <p className="tiny" style={{ margin: "6px 0 0" }}>
-                <a href="/about">이 테스트 자세히 보기</a>
+                <a href="/about">이 테스트 자세히 보기</a> · <a href="/types">디저트 15유형 보기</a>
               </p>
               <p className="tiny" style={{ margin: "4px 0 0" }}>
                 쏠 웰니스 하우스 · 대표 김준석 · 사업자등록번호 572-07-03549 · 통신판매업신고번호 2026-서울마포-2770

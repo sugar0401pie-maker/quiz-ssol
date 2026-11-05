@@ -101,6 +101,9 @@ export default function AboutPage() {
           </tbody>
         </table>
       </div>
+      <p>
+        15가지 디저트 유형이 궁금하다면 <a href="/types">유형별 특징 한눈에 보기</a>를 살펴보세요.
+      </p>
 
       <h2>이용 순서</h2>
       <ol className="about-steps">
