@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import CrossLinks from "@/components/CrossLinks";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import { TYPE_POSTS, type DessertTypePost } from "../typesData";
 
@@ -135,6 +136,7 @@ export default async function TypePostPage({ params }: { params: Promise<{ slug:
           <a href={`/types/${next.slug}`}>{next.name} →</a>
         </div>
       </nav>
+      <CrossLinks from="type" />
     </main>
   );
 }

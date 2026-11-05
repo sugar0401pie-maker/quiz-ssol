@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PARTICIPANT_COUNT_TEXT } from "@/lib/participants";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import CrossLinks from "@/components/CrossLinks";
 import { FAQ_GROUPS } from "./faq";
 
 // 2026-11-04: 디저트 웰니스 유형 테스트 상세 소개 — 검색 노출용 공개 페이지. 로그인·로딩 화면 없이 서버에서 만든 정적 HTML로 나가고,
@@ -157,6 +158,7 @@ export default function AboutPage() {
       </p>
 
       <Cta />
+      <CrossLinks from="about" />
       <p className="about-notice">쏠 웰니스 하우스의 서비스는 의학적 진단·치료·처방을 제공하지 않으며, 전문 의료·상담을 대신하지 않습니다.</p>
     </main>
   );

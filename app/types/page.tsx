@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import CrossLinks from "@/components/CrossLinks";
 import { DESSERT, DESSERT_FAMILY, type AxisKey, type TypeCode } from "@/lib/data";
 import { resolveIconKey } from "@/lib/icons";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -110,6 +111,7 @@ export default function TypesIndexPage() {
       <a className="link-btn-lg" href="/">
         테스트 보러 가기
       </a>
+      <CrossLinks from="types" />
       <p className="about-notice">
         이 테스트는 임상 심리검사나 진단 도구가 아니에요. 지금 시점의 경향을 보여 주고, 결과는 나를 이해하는 단서로 봐 주세요. 쏠 웰니스 하우스의 서비스는 의학적
         진단·치료·처방을 제공하지 않으며, 전문 의료·상담을 대신하지 않습니다.
