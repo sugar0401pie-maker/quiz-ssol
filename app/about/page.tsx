@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PARTICIPANT_COUNT_TEXT } from "@/lib/participants";
+import { PARTICIPANT_AS_OF, PARTICIPANT_COUNT_TEXT } from "@/lib/participants";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import CrossLinks from "@/components/CrossLinks";
 import { FAQ_GROUPS } from "./faq";
@@ -77,7 +77,7 @@ export default function AboutPage() {
         33문항에 답하면 지금 가장 고민이 깊은 영역과 그 고민을 다루는 나만의 방식이 17가지 디저트 캐릭터 중 하나로 나와요. 상담심리 전문가가 상담
         이론을 조합해 문항·유형·해석을 직접 설계하고 검토했어요. 가볍게 시작해도 결과는 나를 이해하는 단서가 돼요.
       </p>
-      <p className="about-count">지금까지 {PARTICIPANT_COUNT_TEXT}명이 참여했어요</p>
+      <p className="about-count">지금까지 {PARTICIPANT_COUNT_TEXT}명이 참여했어요 ({PARTICIPANT_AS_OF} 기준 · 주기적으로 집계해 업데이트해요)</p>
       <Cta />
 
       <h2>한눈에 보기</h2>
@@ -133,7 +133,7 @@ export default function AboutPage() {
 
       <h2>만든 사람</h2>
       <p>
-        상담심리사 2급·청소년상담사 2급 자격을 가진 김준석 대표, 산업심리상담사 1급 자격을 가진 곽혜진 이사, 정신건강임상심리사 1급 오세민·통합예술심리지도사
+        상담심리사 2급·청소년상담사 2급 자격을 가진 김준석 대표, 산업심리상담사 1급 자격을 가진 곽혜진 CSO, 정신건강임상심리사 1급 오세민·통합예술심리지도사
         1급 오유주 전문위원이 문항과 해석을 설계하고 검토했어요. 분야별 전문 인원이 라운드테이블로 모여 테스트와 해석을 함께 검수해요.
       </p>
 

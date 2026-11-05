@@ -11,12 +11,12 @@ const TITLE = "디저트 웰니스 테스트 15가지 유형 한눈에 보기 | 
 const DESCRIPTION =
   "진로·연애·관계·자기·인생 다섯 영역 × 용기형·평온형·유보형 세 가지 대처 방식으로 나오는 디저트 15유형을 소개해요. 에스프레소 브라우니, 티라미수, 마들렌까지 내 유형을 찾아보세요.";
 const UPDATED = "2026-11-05";
-const AREAS: { axis: AxisKey; label: string }[] = [
-  { axis: "CAR", label: "진로" },
-  { axis: "LOV", label: "연애" },
-  { axis: "REL", label: "관계" },
-  { axis: "SLF", label: "자기" },
-  { axis: "DIR", label: "인생" },
+const AREAS: { axis: AxisKey; label: string; slug: string }[] = [
+  { axis: "CAR", label: "진로", slug: "career" },
+  { axis: "LOV", label: "연애", slug: "romance" },
+  { axis: "REL", label: "관계", slug: "relationships" },
+  { axis: "SLF", label: "자기", slug: "self" },
+  { axis: "DIR", label: "인생", slug: "life" },
 ];
 
 export const metadata: Metadata = {
@@ -74,13 +74,15 @@ export default function TypesIndexPage() {
         테스트 보러 가기
       </a>
 
-      {AREAS.map(({ axis, label }, ai) => {
+      {AREAS.map(({ axis, label, slug }, ai) => {
         const posts = TYPE_POSTS.slice(ai * 3, ai * 3 + 3);
         const family = DESSERT_FAMILY[axis];
         return (
           <section key={axis} className="types-area">
             <h2>
-              {label} 영역 · {family.name}
+              <a href={`/types/area/${slug}`}>
+                {label} 영역 · {family.name}
+              </a>
             </h2>
             <p>{family.desc}</p>
             <ul className="types-grid">

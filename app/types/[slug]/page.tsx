@@ -13,6 +13,7 @@ export function generateStaticParams() {
 }
 
 const UPDATED = "2026-11-05";
+const AREA_SLUG: Record<string, string> = { 진로: "career", 연애: "romance", 관계: "relationships", 자기: "self", 인생: "life" };
 const find = (slug: string): DessertTypePost | undefined => TYPE_POSTS.find((p) => p.slug === slug);
 const imgSrc = (p: DessertTypePost, n: number) => `/images/types/${p.slug}-${n}.jpg`;
 
@@ -118,7 +119,9 @@ export default async function TypePostPage({ params }: { params: Promise<{ slug:
       })}
 
       <nav className="types-more" aria-label="다른 유형 보기">
-        <h2>{p.area} 영역의 다른 유형</h2>
+        <h2>
+          <a href={`/types/area/${AREA_SLUG[p.area]}`}>{p.area} 영역</a>의 다른 유형
+        </h2>
         <ul>
           {sameArea
             .filter((x) => x.slug !== p.slug)
